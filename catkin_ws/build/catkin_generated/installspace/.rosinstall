@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/julia/work/LKC++/ROS_Hockey/catkin_ws/install/setup.sh
