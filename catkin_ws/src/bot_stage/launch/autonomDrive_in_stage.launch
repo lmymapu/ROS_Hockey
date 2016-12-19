@@ -1,0 +1,8 @@
+<launch>
+	<arg name="world_file" default="$(find bot_stage)/world/maze.world" />
+
+	<node name="stage" pkg="stage_ros" type="stageros" args="$(arg world_file)">
+		<remap from="base_scan_1" to="base_scan" />
+	</node>
+	<node name="autonomDrive" pkg="bot_stage" type="autonomDrive" output="screen" />
+</launch>

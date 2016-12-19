@@ -1,0 +1,3 @@
+1. I have written a new class of AutonomDrive, as the name implies, I have tried to realize autonomic driving.
+2. run 
+$ roslaunch bot_stage autonomDrive_in_stage.launch

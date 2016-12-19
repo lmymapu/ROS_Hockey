@@ -1,0 +1,9 @@
+<launch>
+	<arg name="world_file" default="/opt/ros/kinetic/share/stage_ros/world/willow-erratic.world" />
+
+        <node name="stage" pkg="stage_ros" type="stageros" args="$(arg world_file)"/>
+
+
+        <node name="tf" pkg="tf" type="static_transform_publisher" args="-11.28 23.27 0 0 0 0 /odom /map 100"/>
+        <node name="robot_location" pkg="bot_stage" type="robot_location" output="screen" />
+</launch>
