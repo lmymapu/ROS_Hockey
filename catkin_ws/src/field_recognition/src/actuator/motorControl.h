@@ -39,6 +39,7 @@ public:
     void rotateUntilObjInMiddle(double angularVel, Color objcolor);     //obj captured by camera
     void moveToOdomPose(double vel, cartesianCoordinate targetPose);
     void moveToWorldPose(double vel, cartesianCoordinate targetPose);
+    void moveToFirstObjRight(double linearVel, double angularVel, Color objcolor);
     void moveUntilMinDist(double vel, double dist, double detectAngleRange);
     void moveByDist(double vel, double dist);
     void testDataReceipt();

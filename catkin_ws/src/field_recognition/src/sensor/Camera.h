@@ -27,6 +27,7 @@ public:
     std::map<Color, cv::Scalar> highRanges;
     std::vector<cv::Scalar> lowRangesRed;
     std::vector<cv::Scalar> highRangesRed;
+    std::vector<CamObject> cObjects;
     turtlebotCamera();
     turtlebotCamera(const turtlebotCamera&);
 
@@ -35,13 +36,22 @@ public:
     std::vector<CamObject> detectObject(Color enColor, cv::Scalar &lowRange, cv::Scalar &highRange,
                                      cv::Scalar &lowRange1, cv::Scalar &highRange1);
 
-    void detectObject(Color enColor, std::vector<CamObject>& cObjects);
-    bool objectInMiddle(Color enColor);
+    void detectObject(Color enColor);
+    bool objectInMiddle(Color enColor, double &offset);
+    bool firstObjRight(Color enColor, double &offset);
+    bool firstObjLeft(Color enColor, double &offset);
+    bool lastObjRight(Color enColor, double &offset);
+    bool lastObjLeft(Color enColor, double &offset);
+    bool firstObjToMiddle(Color enColor, double &offset);
 
 private:
     Trackbar *mTrackbar;
     Trackbar *mTrackbar1;
     ros::CallbackQueue camera_queue;
+public:
+    bool isCamDataAvailable;
+    double picWidth, picHeight;
+    const static double PICTURE_MIDDLE_REGION = 0.1;
 };
 
 #endif

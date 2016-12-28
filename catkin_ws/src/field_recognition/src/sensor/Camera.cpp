@@ -13,6 +13,7 @@ turtlebotCamera::turtlebotCamera():it(nh)
 #else
     imSub = it.subscribe("/image", 10, &turtlebotCamera::imageCb, this);
 #endif
+    isCamDataAvailable = false;
 }
 
 turtlebotCamera::turtlebotCamera(const turtlebotCamera &tC):it(nh),cv_ptr(tC.cv_ptr){
@@ -34,8 +35,10 @@ void turtlebotCamera::imageCb(const sensor_msgs::ImageConstPtr& msg)
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
-
+    isCamDataAvailable = true;
     mImage = cv_ptr->image.clone();
+    picWidth = double(mImage.cols);
+    picHeight = double(mImage.rows);
 }
 
 std::vector<CamObject> turtlebotCamera::detectObject(Color enColor, cv::Scalar &lowRange,cv::Scalar &highRange,
@@ -111,7 +114,7 @@ std::vector<CamObject> turtlebotCamera::detectObject(Color enColor, cv::Scalar &
 }
 
 
-void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjects)
+void turtlebotCamera::detectObject(Color enColor)
 {
     cv::Mat hsvImg;
     cv::Mat threshold;
@@ -215,11 +218,90 @@ void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjec
     }
 
     //imwrite("Image.jpg", mImage);
-    imshow("Image from Threshold", threshold);
     imshow("Image from camera", origImg);
     waitKey(10);
 }
 
-bool turtlebotCamera::objectInMiddle(Color enColor){
-    return true;
+bool turtlebotCamera::objectInMiddle(Color enColor, double &offset){
+    bool isFound = false;
+    int midIndexBegin = floor(picWidth * (1 - PICTURE_MIDDLE_REGION) / 2);
+    int midIndexEnd = floor(picWidth * (1 + PICTURE_MIDDLE_REGION) / 2);
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(it->mPosition.x > midIndexBegin && it->mPosition.x < midIndexEnd && it->mColor == enColor){
+            offset = it->mPosition.x - (picWidth - 1)/2;
+            isFound = true;
+            return isFound;
+        }
+    }
+    return isFound;
+}
+
+bool turtlebotCamera::firstObjRight(Color enColor, double &offset){
+    bool isFound = false;
+    float midPos = (picWidth-1)/2;
+    float firstRightObjPos = mImage.cols;
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(it->mPosition.x > midPos && it->mColor == enColor && it->mPosition.x < firstRightObjPos){
+            offset = it->mPosition.x -midPos;
+            firstRightObjPos = it->mPosition.x;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool turtlebotCamera::firstObjLeft(Color enColor, double &offset){
+    bool isFound = false;
+    float midPos = (picWidth-1)/2;
+    float firstLeftObjPos = 0;
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(it->mPosition.x < midPos && it->mColor == enColor && it->mPosition.x > firstLeftObjPos){
+            offset = it->mPosition.x -midPos;
+            firstLeftObjPos = it->mPosition.x;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool turtlebotCamera::lastObjRight(Color enColor, double &offset){
+    bool isFound = false;
+    float midPos = (picWidth-1)/2;
+    float lastRightObjPos = midPos;
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(it->mPosition.x > lastRightObjPos && it->mColor == enColor){
+            offset = it->mPosition.x -midPos;
+            lastRightObjPos = it->mPosition.x;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool turtlebotCamera::lastObjLeft(Color enColor, double &offset){
+    bool isFound = false;
+    float midPos = (picWidth-1)/2;
+    float lastLeftObjPos = midPos;
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(it->mPosition.x < lastLeftObjPos && it->mColor == enColor){
+            offset = it->mPosition.x -midPos;
+            lastLeftObjPos = it->mPosition.x;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool turtlebotCamera::firstObjToMiddle(Color enColor, double &offset){
+    bool isFound = false;
+    float midPos = (picWidth-1)/2;
+    float offsetLen = picWidth/2;
+    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
+        if(abs(it->mPosition.x - midPos) < offsetLen && it->mColor == enColor){
+            offset = it->mPosition.x -midPos;
+            offsetLen = abs(it->mPosition.x - midPos);
+            isFound = true;
+        }
+    }
+    return isFound;
 }

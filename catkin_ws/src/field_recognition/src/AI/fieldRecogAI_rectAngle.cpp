@@ -94,6 +94,7 @@ void fieldRecogAI::stateAction(){
     radialCoordinate objRadialPose;
     cartesianCoordinate objRobotCartPose, objOdomCartPose;
     ObjectInMap postObj;
+    double objOffsetInPic;
 
     switch(stat){
     case start_pos0:
@@ -119,7 +120,7 @@ void fieldRecogAI::stateAction(){
             motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
         }
         //confirm with camera if this object is a post (in green color)
-        if(cameraProcess.objectInMiddle(green)){
+        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(4, green, post, objOdomCartPose);
@@ -142,7 +143,7 @@ void fieldRecogAI::stateAction(){
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green)){
+        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(2, green, post, objOdomCartPose);
@@ -169,7 +170,7 @@ void fieldRecogAI::stateAction(){
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green)){
+        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(0, green, post, objOdomCartPose);
@@ -197,7 +198,7 @@ void fieldRecogAI::stateAction(){
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green)){
+        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(1, green, post, objOdomCartPose);
@@ -225,7 +226,7 @@ void fieldRecogAI::stateAction(){
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green)){
+        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(5, green, post, objOdomCartPose);
@@ -292,8 +293,8 @@ void fieldRecogAI::testDataReceipt(){
         }
         /*
         if(!cameraProcess.mImage.empty()){
-            cameraProcess.detectObject(green, camObj);
-            ROS_INFO_STREAM("Number of detected objects: "<< camObj.size());
+            cameraProcess.detectObject(green);
+            ROS_INFO_STREAM("Number of detected objects: "<< cameraProcess.cObjects.size());
         }*/
         sample_rate.sleep();
     }
@@ -303,7 +304,7 @@ void fieldRecogAI::startFieldRecognition(){
     motorProcess.initMotor(&laserProcess, &cameraProcess);
     ROS_INFO("Start recognizing field");
     //motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
-    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, blue);
+    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, green);
     /*while(1){
         stateAction();
         nextStateControl();
