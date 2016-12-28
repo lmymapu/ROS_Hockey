@@ -42,7 +42,6 @@ cartesianCoordinate motorControl::getRobotOrientVector(tf::StampedTransform traf
 void motorControl::rotateToOdomVector(double angularVel, cartesianCoordinate targetVec){
     cartesianCoordinate orient;
     geometry_msgs::Twist vel_msg;
-    vel_msg.angular.z = angularVel;
     while(ros::ok()){
         getTrafo_Odom2Robot();
         orient = getRobotOrientVector(trafo_Odom2Base);
@@ -61,8 +60,32 @@ void motorControl::rotateToOdomVector(double angularVel, cartesianCoordinate tar
     }
 }
 
-void motorControl::rotateUntilObjInMiddle(double angularVel, double angleRange){
-
+void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, double angleMax){
+    radialCoordinate objRadialPose;
+    geometry_msgs::Twist vel_msg;
+    while(ros::ok()){
+        ros::spinOnce();
+        if(!laserProcessPtr->isLaserDataAvailable){
+            vel_msg.angular.z = 0;
+            velocityPub.publish(vel_msg);
+        }else{
+            laserProcessPtr->isLaserDataAvailable = false;
+            if(!laserProcessPtr->findClosestObjectRadialPose(angleMin, angleMax, objRadialPose)){
+                vel_msg.angular.z = angularVel;
+                velocityPub.publish(vel_msg);
+            }else{
+                if(objRadialPose.theta < 0.5*ANGLE_DETECT_PRECISION && objRadialPose.theta > -0.5*ANGLE_DETECT_PRECISION){
+                    vel_msg.angular.z = 0;
+                    velocityPub.publish(vel_msg);
+                    return;
+                }else{
+                    vel_msg.angular.z = abs(angularVel) * sin(objRadialPose.theta);
+                    velocityPub.publish(vel_msg);
+                }
+            }
+        }
+        sample_rate.sleep();
+    }
 }
 
 void motorControl::rotateUntilObjInMiddle(double angularVel, Color objcolor){
@@ -70,7 +93,25 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, Color objcolor){
 }
 
 void motorControl::moveToOdomPose(double vel, cartesianCoordinate targetPose){
+    geometry_msgs::Twist vel_msg;
+    tf::Vector3 targetPoseInRobot, targetPoseInOdom;
+    targetPoseInOdom.setValue(targetPose.x, targetPose.y, 0);
 
+    while(ros::ok()){
+        getTrafo_Odom2Robot();
+        targetPoseInRobot = trafo_Odom2Base.inverse() * targetPoseInOdom;
+        if(targetPoseInRobot.length() > POSITION_PRECISION){
+            vel_msg.angular.z = 8*vel * atan2(targetPoseInRobot.getY(), targetPoseInRobot.getX());
+            vel_msg.linear.x = vel * sqrt(pow(targetPoseInRobot.getX(), 2) + pow(targetPoseInRobot.getY(), 2));
+            velocityPub.publish(vel_msg);
+        }else{
+            vel_msg.angular.z = 0;
+            vel_msg.linear.x = 0;
+            velocityPub.publish(vel_msg);
+            return;
+        }
+        sample_rate.sleep();
+    }
 }
 
 void motorControl::moveToWorldPose(double vel, cartesianCoordinate targetPose){
@@ -78,11 +119,51 @@ void motorControl::moveToWorldPose(double vel, cartesianCoordinate targetPose){
 }
 
 void motorControl::moveUntilMinDist(double vel, double dist, double detectAngleRange){
-
+    radialCoordinate objRadialPose;
+    geometry_msgs::Twist vel_msg;
+    while(ros::ok()){
+        ros::spinOnce();
+        if(laserProcessPtr->isLaserDataAvailable){
+            laserProcessPtr->isLaserDataAvailable = false;
+            if(!laserProcessPtr->findClosestObjectRadialPose(-detectAngleRange/2, detectAngleRange/2, objRadialPose)){
+                vel_msg.linear.x = vel;
+                velocityPub.publish(vel_msg);
+            }else{
+                if(objRadialPose.r > dist){
+                    vel_msg.linear.x = 0.5*vel;
+                    velocityPub.publish(vel_msg);
+                }else{
+                    vel_msg.linear.x = 0;
+                    velocityPub.publish(vel_msg);
+                    return;
+                }
+            }
+        }
+        sample_rate.sleep();
+    }
 }
 
 void motorControl::moveByDist(double vel, double dist){
-
+    geometry_msgs::Twist vel_msg;
+    tf::Vector3 targetPoseInRobot, targetPoseInOdom;
+    targetPoseInRobot.setValue(dist, 0, 0);
+    getTrafo_Odom2Robot();
+    targetPoseInOdom = trafo_Odom2Base * targetPoseInRobot;
+    while(ros::ok()){
+        getTrafo_Odom2Robot();
+        targetPoseInRobot = trafo_Odom2Base.inverse() * targetPoseInOdom;
+        if(targetPoseInRobot.length() > POSITION_PRECISION){
+            vel_msg.angular.z = 8*vel * atan2(targetPoseInRobot.getY(), targetPoseInRobot.getX());
+            vel_msg.linear.x = vel * sqrt(pow(targetPoseInRobot.getX(), 2) + pow(targetPoseInRobot.getY(), 2));
+            velocityPub.publish(vel_msg);
+        }else{
+            vel_msg.angular.z = 0;
+            vel_msg.linear.x = 0;
+            velocityPub.publish(vel_msg);
+            return;
+        }
+        sample_rate.sleep();
+    }
 }
 
 void motorControl::testDataReceipt(){

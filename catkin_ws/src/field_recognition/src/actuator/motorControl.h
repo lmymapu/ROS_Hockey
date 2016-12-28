@@ -35,7 +35,7 @@ private:
 public:
     cartesianCoordinate getRobotOrientVector(tf::StampedTransform trafo);
     void rotateToOdomVector(double angularVel, cartesianCoordinate targetVec);
-    void rotateUntilObjInMiddle(double angularVel, double angleRange);  //obj captured by laser
+    void rotateUntilObjInMiddle(double angularVel, double angleMin, double angleMax);  //obj captured by laser
     void rotateUntilObjInMiddle(double angularVel, Color objcolor);     //obj captured by camera
     void moveToOdomPose(double vel, cartesianCoordinate targetPose);
     void moveToWorldPose(double vel, cartesianCoordinate targetPose);
@@ -44,6 +44,8 @@ public:
     void testDataReceipt();
 
     const static double ANGLE_CONTROL_PRECISION = 0.05;
+    const static double ANGLE_DETECT_PRECISION = 0.1;
+    const static double POSITION_PRECISION = 0.05;
 };
 
 #endif // MOTORCONTROL_H

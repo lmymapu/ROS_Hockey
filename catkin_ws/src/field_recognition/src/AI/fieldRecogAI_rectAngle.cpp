@@ -19,7 +19,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_01:
-        //if robot is moving forward AND the nearest object is closer than the minimal distance, then halt
         if(isMovingFinished){
             stat = halt_pos1;
             isMovingFinished = false;
@@ -32,7 +31,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_12:
-        //if robot is moving forward AND the nearest object is closer than the minimal distance, then halt
         if(isMovingFinished){
             stat = halt_pos2;
             isMovingFinished = false;
@@ -45,7 +43,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_23:
-        //if robot is moving forward AND the nearest object is closer than the minimal distance, then halt
         if(isMovingFinished){
             stat = halt_pos3;
             isMovingFinished = false;
@@ -58,7 +55,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_34:
-        //if robot is moving forward AND the nearest object is closer than the minimal distance, then halt
         if(isMovingFinished){
             stat = halt_pos4;
             isMovingFinished = false;
@@ -71,9 +67,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_45:
-        // if robot is moving forward
-        // AND it has moved at least the length of vector post0->post2
-        // AND the nearest object is closer than the minimal distance, then halt
         if(isMovingFinished){
             stat = halt_pos5;
             isMovingFinished = false;
@@ -86,8 +79,6 @@ void fieldRecogAI::nextStateControl(){
         }
         break;
     case move_50:
-        // if robot is moving forward
-        // AND it has reached the middle of the fieldwidth within a minimal radius, then halt
         if(isMovingFinished){
             stat = end_pos0;
             isMovingFinished = false;
@@ -106,8 +97,6 @@ void fieldRecogAI::stateAction(){
 
     switch(stat){
     case start_pos0:
-        //motorProcess.testDataReceipt();
-        //testDataReceipt();
         //turn left by 90 degree
         tarVec.x = 0; tarVec.y = 1;
         motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
@@ -125,9 +114,9 @@ void fieldRecogAI::stateAction(){
         objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/6, M_PI/6);
         //adjust robot orientation until there is an object at front
         if(objRadialPose.theta > 0){
-            motorProcess.rotateUntilObjInMiddle(FINECTRL_ANGULAR_VEL, M_PI/6);
+            motorProcess.rotateUntilObjInMiddle(FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
         }else{
-            motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, M_PI/6);
+            motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
         }
         //confirm with camera if this object is a post (in green color)
         if(cameraProcess.objectInMiddle(green)){
@@ -151,7 +140,7 @@ void fieldRecogAI::stateAction(){
         //recognise the first object on the right
         objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
         //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, M_PI);
+        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
@@ -178,7 +167,7 @@ void fieldRecogAI::stateAction(){
         //recognise the first object on the right
         objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
         //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, M_PI);
+        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
@@ -206,7 +195,7 @@ void fieldRecogAI::stateAction(){
         //recognise the first object on the right
         objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
         //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, M_PI);
+        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
@@ -234,7 +223,7 @@ void fieldRecogAI::stateAction(){
         //recognise the first object on the right
         objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
         //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, M_PI);
+        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green)){
             objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
@@ -313,8 +302,9 @@ void fieldRecogAI::testDataReceipt(){
 void fieldRecogAI::startFieldRecognition(){
     motorProcess.initMotor(&laserProcess, &cameraProcess);
     ROS_INFO("Start recognizing field");
-    while(1){
+    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
+    /*while(1){
         stateAction();
         nextStateControl();
-    }
+    }*/
 }
