@@ -302,7 +302,8 @@ void fieldRecogAI::testDataReceipt(){
 void fieldRecogAI::startFieldRecognition(){
     motorProcess.initMotor(&laserProcess, &cameraProcess);
     ROS_INFO("Start recognizing field");
-    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
+    //motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
+    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, blue);
     /*while(1){
         stateAction();
         nextStateControl();

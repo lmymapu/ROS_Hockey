@@ -49,7 +49,7 @@ void motorControl::rotateToOdomVector(double angularVel, cartesianCoordinate tar
             vel_msg.angular.z = angularVel;
             velocityPub.publish(vel_msg);
         }else if(acos(orient * targetVec) > ANGLE_CONTROL_PRECISION){
-            vel_msg.angular.z = 0.5 * angularVel;
+            vel_msg.angular.z = 0.2 * angularVel;
             velocityPub.publish(vel_msg);
         }else{
             vel_msg.angular.z = 0;
@@ -65,10 +65,7 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, do
     geometry_msgs::Twist vel_msg;
     while(ros::ok()){
         ros::spinOnce();
-        if(!laserProcessPtr->isLaserDataAvailable){
-            vel_msg.angular.z = 0;
-            velocityPub.publish(vel_msg);
-        }else{
+        if(laserProcessPtr->isLaserDataAvailable){
             laserProcessPtr->isLaserDataAvailable = false;
             if(!laserProcessPtr->findClosestObjectRadialPose(angleMin, angleMax, objRadialPose)){
                 vel_msg.angular.z = angularVel;
@@ -89,7 +86,15 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, do
 }
 
 void motorControl::rotateUntilObjInMiddle(double angularVel, Color objcolor){
-
+    geometry_msgs::Twist vel_msg;
+    camObj.clear();
+    while(ros::ok()){
+        ros::spinOnce();
+        if(!cameraProcessPtr->mImage.empty()){
+            cameraProcessPtr->detectObject(objcolor, camObj);
+        }
+        sample_rate.sleep();
+    }
 }
 
 void motorControl::moveToOdomPose(double vel, cartesianCoordinate targetPose){

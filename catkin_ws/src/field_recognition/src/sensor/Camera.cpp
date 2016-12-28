@@ -123,6 +123,7 @@ void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjec
     //cv::Scalar lowRange;
     //cv::Scalar highRange;
     // find object using given ranges
+#ifndef SIMULATION_MODE
     switch(enColor)
     {
     case blue:
@@ -132,7 +133,8 @@ void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjec
         cv::inRange(hsvImg, Scalar(20, 32, 113), Scalar(33,255,255), threshold);
         break;
     case green:
-        cv::inRange(hsvImg, Scalar(45, 100,53), Scalar(82, 255,255), threshold);
+
+        cv::inRange(hsvImg, Scalar(45, 30,53), Scalar(82, 255,255), threshold);
         break;
     case red:
         cv::inRange(hsvImg, Scalar(0, 90, 45), Scalar(10, 255, 255), threshold);
@@ -145,17 +147,39 @@ void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjec
     default:
         break;
     }
+#else
+    switch(enColor)
+    {
+    case red:
+        cv::inRange(origImg, Scalar(0,0,30), Scalar(0,0,255), threshold);
+        break;
+    case yellow:
+        cv::inRange(origImg, Scalar(0, 40,40), Scalar(10, 255,255), threshold);
+        break;
+    case green:
+        cv::inRange(origImg, Scalar(0, 40,0), Scalar(10, 255,10), threshold);
+        break;
+    case blue:
+        cv::inRange(origImg, Scalar(40, 0, 0), Scalar(255, 10, 10), threshold);
+        break;
+    case black:
+        cv::inRange(origImg, Scalar(0,0,0), Scalar(10, 10, 10), threshold);
+        break;
+    default:
+        break;
+    }
+#endif
 
     cv::Mat erodeElement = cv::getStructuringElement(MORPH_RECT, Size(3,3));
     cv::Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8,8));
-
+#ifndef SIMULATION_MODE
     // suppress noise
     erode(threshold,threshold, erodeElement);
     erode(threshold,threshold, erodeElement);
 
     dilate(threshold, threshold, dilateElement);
     dilate(threshold, threshold, dilateElement);
-
+#endif
     // find object contours
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
@@ -191,6 +215,7 @@ void turtlebotCamera::detectObject(Color enColor, std::vector<CamObject> &cObjec
     }
 
     //imwrite("Image.jpg", mImage);
+    imshow("Image from Threshold", threshold);
     imshow("Image from camera", origImg);
     waitKey(10);
 }
