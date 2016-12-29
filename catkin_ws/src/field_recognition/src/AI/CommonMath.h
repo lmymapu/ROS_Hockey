@@ -13,6 +13,7 @@ struct cartesianCoordinate{
     double y;
     cartesianCoordinate(){x=0;y=0;}
     cartesianCoordinate(double xVal, double yVal):x(xVal),y(yVal){}
+    void setVal(double xV, double yV){x=xV; y=yV;}
     cartesianCoordinate operator-();
     cartesianCoordinate operator-(const cartesianCoordinate& rhs);
     cartesianCoordinate operator+(const cartesianCoordinate& rhs);

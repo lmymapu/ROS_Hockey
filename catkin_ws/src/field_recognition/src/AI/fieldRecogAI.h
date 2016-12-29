@@ -57,7 +57,7 @@ private:
     cartesianCoordinate calculateObjOdomPose(cartesianCoordinate robotPose);
 public:
     const static double MINDIST_OBJECT = 0.3;
-    const static double NORMAL_LINEAR_VEL = 1;
+    const static double NORMAL_LINEAR_VEL = 0.5;
     const static double FINECTRL_LINEAR_VEL = 0.2;
     const static double NORMAL_ANGULAR_VEL = 0.5;
     const static double FINECTRL_ANGULAR_VEL = 0.1;

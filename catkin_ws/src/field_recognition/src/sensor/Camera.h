@@ -38,11 +38,8 @@ public:
 
     void detectObject(Color enColor);
     bool objectInMiddle(Color enColor, double &offset);
-    bool firstObjRight(Color enColor, double &offset);
-    bool firstObjLeft(Color enColor, double &offset);
-    bool lastObjRight(Color enColor, double &offset);
-    bool lastObjLeft(Color enColor, double &offset);
-    bool firstObjToMiddle(Color enColor, double &offset);
+    bool rightMostObj(Color enColor, double winBeg, double winEnd, double &offset);
+    bool leftMostObj(Color enColor, double winBeg, double winEnd, double &offset);
 
 private:
     Trackbar *mTrackbar;

@@ -99,20 +99,20 @@ void fieldRecogAI::stateAction(){
     switch(stat){
     case start_pos0:
         //turn left by 90 degree
-        tarVec.x = 0; tarVec.y = 1;
+        tarVec.setVal(0,1);
         motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
         //slowly rotate right, until the camera captures a green post at front
-        motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, green);
+        //motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, green);
         isRecogJobFinished = true;
         break;
     case move_01:
         //move forward until the nearest obj is within a minimal range
-        motorProcess.moveUntilMinDist(NORMAL_LINEAR_VEL, MINDIST_OBJECT, M_PI/6);
+        motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL, NORMAL_ANGULAR_VEL, 0.5, 1, green);
         isMovingFinished = true;
         break;
     case halt_pos1:
         //recognise the nearest object with laser
-        objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/6, M_PI/6);
+        laserProcess.findClosestObjectRadialPose_blk(-M_PI/6, M_PI/6, objRadialPose);
         //adjust robot orientation until there is an object at front
         if(objRadialPose.theta > 0){
             motorProcess.rotateUntilObjInMiddle(FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
@@ -121,7 +121,7 @@ void fieldRecogAI::stateAction(){
         }
         //confirm with camera if this object is a post (in green color)
         if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
+            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(4, green, post, objOdomCartPose);
             hockeyField.postObjs[4] = postObj;
@@ -139,12 +139,12 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos2:
         //recognise the first object on the right
-        objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
+        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
+            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(2, green, post, objOdomCartPose);
             hockeyField.postObjs[2] = postObj;
@@ -166,12 +166,12 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos3:
         //recognise the first object on the right
-        objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
+        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
+            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(0, green, post, objOdomCartPose);
             hockeyField.postObjs[0] = postObj;
@@ -194,12 +194,12 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos4:
         //recognise the first object on the right
-        objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
+        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
+            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(1, green, post, objOdomCartPose);
             hockeyField.postObjs[1] = postObj;
@@ -222,12 +222,12 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos5:
         //recognise the first object on the right
-        objRadialPose = laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0);
+        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
         //rotate right until there is an object at front
         motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
         //confirm with camera if this object is a post
         if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            objRobotCartPose = laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12);
+            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(5, green, post, objOdomCartPose);
             hockeyField.postObjs[5] = postObj;
@@ -304,7 +304,7 @@ void fieldRecogAI::startFieldRecognition(){
     motorProcess.initMotor(&laserProcess, &cameraProcess);
     ROS_INFO("Start recognizing field");
     //motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
-    motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, green);
+    motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL,-NORMAL_ANGULAR_VEL, 0.5, 1, green);
     /*while(1){
         stateAction();
         nextStateControl();

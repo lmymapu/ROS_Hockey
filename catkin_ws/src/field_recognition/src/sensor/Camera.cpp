@@ -236,70 +236,32 @@ bool turtlebotCamera::objectInMiddle(Color enColor, double &offset){
     return isFound;
 }
 
-bool turtlebotCamera::firstObjRight(Color enColor, double &offset){
+bool turtlebotCamera::rightMostObj(Color enColor, double winBeg, double winEnd, double &offset){
     bool isFound = false;
-    float midPos = (picWidth-1)/2;
-    float firstRightObjPos = mImage.cols;
+    float posMid = (picWidth-1)/2;
+    float posBeg = (picWidth-1) * winBeg;
+    float posEnd = (picWidth-1) * winEnd;
+    float rightMostObjPos = posBeg;
     for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
-        if(it->mPosition.x > midPos && it->mColor == enColor && it->mPosition.x < firstRightObjPos){
-            offset = it->mPosition.x -midPos;
-            firstRightObjPos = it->mPosition.x;
+        if(it->mColor == enColor && it->mPosition.x < posEnd && it->mPosition.x > posBeg && it->mPosition.x > rightMostObjPos){
+            offset = it->mPosition.x - posMid;
+            rightMostObjPos = it->mPosition.x;
             isFound = true;
         }
     }
     return isFound;
 }
 
-bool turtlebotCamera::firstObjLeft(Color enColor, double &offset){
+bool turtlebotCamera::leftMostObj(Color enColor, double winBeg, double winEnd, double &offset){
     bool isFound = false;
-    float midPos = (picWidth-1)/2;
-    float firstLeftObjPos = 0;
+    float posMid = (picWidth-1)/2;
+    float posBeg = (picWidth-1) * winBeg;
+    float posEnd = (picWidth-1) * winEnd;
+    float leftMostObjPos = posEnd;
     for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
-        if(it->mPosition.x < midPos && it->mColor == enColor && it->mPosition.x > firstLeftObjPos){
-            offset = it->mPosition.x -midPos;
-            firstLeftObjPos = it->mPosition.x;
-            isFound = true;
-        }
-    }
-    return isFound;
-}
-
-bool turtlebotCamera::lastObjRight(Color enColor, double &offset){
-    bool isFound = false;
-    float midPos = (picWidth-1)/2;
-    float lastRightObjPos = midPos;
-    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
-        if(it->mPosition.x > lastRightObjPos && it->mColor == enColor){
-            offset = it->mPosition.x -midPos;
-            lastRightObjPos = it->mPosition.x;
-            isFound = true;
-        }
-    }
-    return isFound;
-}
-
-bool turtlebotCamera::lastObjLeft(Color enColor, double &offset){
-    bool isFound = false;
-    float midPos = (picWidth-1)/2;
-    float lastLeftObjPos = midPos;
-    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
-        if(it->mPosition.x < lastLeftObjPos && it->mColor == enColor){
-            offset = it->mPosition.x -midPos;
-            lastLeftObjPos = it->mPosition.x;
-            isFound = true;
-        }
-    }
-    return isFound;
-}
-
-bool turtlebotCamera::firstObjToMiddle(Color enColor, double &offset){
-    bool isFound = false;
-    float midPos = (picWidth-1)/2;
-    float offsetLen = picWidth/2;
-    for(vector<CamObject>::iterator it=cObjects.begin(); it!=cObjects.end(); ++it){
-        if(abs(it->mPosition.x - midPos) < offsetLen && it->mColor == enColor){
-            offset = it->mPosition.x -midPos;
-            offsetLen = abs(it->mPosition.x - midPos);
+        if(it->mColor == enColor && it->mPosition.x < posEnd && it->mPosition.x > posBeg && it->mPosition.x < leftMostObjPos){
+            offset = it->mPosition.x - posMid;
+            leftMostObjPos = it->mPosition.x;
             isFound = true;
         }
     }

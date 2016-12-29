@@ -94,7 +94,7 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, Color objcolor){
             cameraProcessPtr->isCamDataAvailable = false;
             cameraProcessPtr->detectObject(objcolor);
             if(angularVel<0){
-                if(!cameraProcessPtr->firstObjRight(objcolor,offset)){
+                if(!cameraProcessPtr->leftMostObj(objcolor, 0.5, 1, offset)){
                     vel_msg.angular.z = angularVel;
                     velocityPub.publish(vel_msg);
                 }else{
@@ -108,7 +108,7 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, Color objcolor){
                     }
                 }
             }else{
-                if(!cameraProcessPtr->firstObjLeft(objcolor,offset)){
+                if(!cameraProcessPtr->rightMostObj(objcolor, 0, 0.5, offset)){
                     vel_msg.angular.z = angularVel;
                     velocityPub.publish(vel_msg);
                 }else{
@@ -153,41 +153,110 @@ void motorControl::moveToWorldPose(double vel, cartesianCoordinate targetPose){
 
 }
 
-void motorControl::moveToFirstObjRight(double linearVel, double angularVel, Color objcolor){        //angularVel must be negative
+void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor){        //angularVel must be negative
     geometry_msgs::Twist vel_msg;
     double offsetObjMid, offsetObjRight;
-    radialCoordinate ObjClosePose;
+    radialCoordinate ObjPose;
     bool existsObjMid(false), existsObjRight(false);
-    bool existsObjClose(false);
+    bool existsLaserObj(false);
+
+    bool firstCamDataReady(false), firstLaserDataReady(false);
     while(ros::ok()){
         ros::spinOnce();
         if(cameraProcessPtr->isCamDataAvailable){
+            firstCamDataReady = true;
+            cameraProcessPtr->detectObject(objcolor);
             existsObjMid = cameraProcessPtr->objectInMiddle(objcolor, offsetObjMid);
-            existsObjRight = cameraProcessPtr->firstObjRight(objcolor, offsetObjRight);
+            existsObjRight = cameraProcessPtr->leftMostObj(objcolor, winBeg, winEnd, offsetObjRight);
+            cameraProcessPtr->isCamDataAvailable = false;
         }
         if(laserProcessPtr->isLaserDataAvailable){
-            existsObjClose = laserProcessPtr->findClosestObjectRadialPose(-M_PI/2, M_PI/18, ObjClosePose);
+            firstLaserDataReady = true;
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(-M_PI/4, M_PI/4, ObjPose);
+            laserProcessPtr->isLaserDataAvailable = false;
+        }
+        if(!firstCamDataReady || !firstLaserDataReady){
+            sample_rate.sleep();
+            continue;
         }
 
         if(existsObjMid){
-            vel_msg.angular.z = 2*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
         }else if(existsObjRight){
-            vel_msg.angular.z = 2*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 4*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
         }else{
             vel_msg.angular.z = angularVel;
         }
 
-        if(existsObjClose){
-            if(ObjClosePose.r < 0.3){
+        if(existsLaserObj){
+            if(ObjPose.r < 0.3){
                 vel_msg.angular.z = 0;
                 vel_msg.linear.x = 0;
                 velocityPub.publish(vel_msg);
                 return;
+            }else{
+            vel_msg.linear.x = ObjPose.r/laserObject::MAX_DETECT_RANGE * linearVel;
+            //vel_msg.angular.z = -4*angularVel*sin(ObjPose.theta);
             }
-            vel_msg.linear.x = ObjClosePose.r/laserObject::MAX_DETECT_RANGE * linearVel;
-            vel_msg.angular.z = -2*angularVel*sin(ObjClosePose.theta);
         }else{
             if(existsObjMid || existsObjRight){
+                vel_msg.linear.x = linearVel;
+            }else{
+                vel_msg.linear.x = 0;
+            }
+        }
+        velocityPub.publish(vel_msg);
+        sample_rate.sleep();
+    }
+}
+
+void motorControl::moveToRightMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor){        //angularVel must be positive
+    geometry_msgs::Twist vel_msg;
+    double offsetObjMid, offsetObjLeft;
+    radialCoordinate ObjPose;
+    bool existsObjMid(false), existsObjLeft(false);
+    bool existsLaserObj(false);
+
+    bool firstCamDataReady(false), firstLaserDataReady(false);
+    while(ros::ok()){
+        ros::spinOnce();
+        if(cameraProcessPtr->isCamDataAvailable){
+            firstCamDataReady = true;
+            cameraProcessPtr->detectObject(objcolor);
+            existsObjMid = cameraProcessPtr->objectInMiddle(objcolor, offsetObjMid);
+            existsObjLeft = cameraProcessPtr->rightMostObj(objcolor, winBeg, winEnd, offsetObjLeft);
+            cameraProcessPtr->isCamDataAvailable = false;
+        }
+        if(laserProcessPtr->isLaserDataAvailable){
+            firstLaserDataReady = true;
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(-M_PI/4, M_PI/4, ObjPose);
+            laserProcessPtr->isLaserDataAvailable = false;
+        }
+        if(!firstCamDataReady || !firstLaserDataReady){
+            sample_rate.sleep();
+            continue;
+        }
+
+        if(existsObjMid){
+            vel_msg.angular.z = -4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+        }else if(existsObjLeft){
+            vel_msg.angular.z = -4*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+        }else{
+            vel_msg.angular.z = angularVel;
+        }
+
+        if(existsLaserObj){
+            if(ObjPose.r < 0.3){
+                vel_msg.angular.z = 0;
+                vel_msg.linear.x = 0;
+                velocityPub.publish(vel_msg);
+                return;
+            }else{
+            vel_msg.linear.x = ObjPose.r/laserObject::MAX_DETECT_RANGE * linearVel;
+            //vel_msg.angular.z = -4*angularVel*sin(ObjPose.theta);
+            }
+        }else{
+            if(existsObjMid || existsObjLeft){
                 vel_msg.linear.x = linearVel;
             }else{
                 vel_msg.linear.x = 0;
@@ -264,7 +333,7 @@ void motorControl::testDataReceipt(){
         if(cameraProcessPtr->isCamDataAvailable){
             cameraProcessPtr->detectObject(green);
             ROS_INFO_STREAM("Number of detected objects: "<< cameraProcessPtr->cObjects.size());
-            existsObj = cameraProcessPtr->firstObjLeft(green, offset);
+            /*existsObj = cameraProcessPtr->firstObjLeft(green, offset);
             if(existsObj)
                 ROS_INFO_STREAM("first object on the left found at "<< offset);
             existsObj = cameraProcessPtr->firstObjRight(green, offset);
@@ -275,7 +344,7 @@ void motorControl::testDataReceipt(){
                 ROS_INFO_STREAM("last object on the left found at "<< offset);
             existsObj = cameraProcessPtr->lastObjRight(green, offset);
             if(existsObj)
-                ROS_INFO_STREAM("last object on the right found at "<< offset);
+                ROS_INFO_STREAM("last object on the right found at "<< offset);*/
             cameraProcessPtr->isCamDataAvailable = false;
         }
         sample_rate.sleep();
