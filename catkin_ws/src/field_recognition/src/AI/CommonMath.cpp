@@ -54,3 +54,9 @@ double cartesianCoordinate::operator *(const cartesianCoordinate &rhs){
     double prod=x * rhs.x + y * rhs.y;
     return prod;
 }
+
+void cartesianCoordinate::normalize(){
+    double r = length();
+    x = x/r;
+    y = y/r;
+}

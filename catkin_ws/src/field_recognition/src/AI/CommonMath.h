@@ -14,6 +14,8 @@ struct cartesianCoordinate{
     cartesianCoordinate(){x=0;y=0;}
     cartesianCoordinate(double xVal, double yVal):x(xVal),y(yVal){}
     void setVal(double xV, double yV){x=xV; y=yV;}
+    void normalize();
+    double length(){return sqrt(pow(x,2) + pow(y,2));}
     cartesianCoordinate operator-();
     cartesianCoordinate operator-(const cartesianCoordinate& rhs);
     cartesianCoordinate operator+(const cartesianCoordinate& rhs);

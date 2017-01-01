@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     rospy
     std_msgs
+    message_generation
     sensor_msgs
     cv_bridge
     image_transport
@@ -49,18 +50,18 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+add_message_files(
+   FILES
+   fr_trafo.msg
 #   Message2.msg
-# )
+)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+add_service_files(
+   FILES
+   convert_frames.srv
 #   Service2.srv
-# )
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -70,10 +71,10 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +108,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES bot_AI
-#  CATKIN_DEPENDS other_catkin_pkg
+   CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -145,7 +146,7 @@ add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} 
     src/sensor/Camera.h src/sensor/laserobject.h
     src/sensor/CamObject.h src/sensor/trackbar.h src/AI/fieldRecogAI.h src/AI/ObjectInMap.h src/AI/CommonMath.h
     src/actuator/motorControl.h src/globalConfig.h src/AI/Map.h)
-#add_executable(bot_AI_node_anyAngle src/fieldRecogAI_anyAngle.cpp)
+add_executable(world_coor_broadcaster src/world_coor_broadcaster.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -155,9 +156,9 @@ add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} 
 target_link_libraries(fieldRecog_rechAngle
    ${catkin_LIBRARIES} ${OpenCV_LIBS}
  )
-#target_link_libraries(bot_AI_node_anyAngle
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(world_coor_broadcaster
+   ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##

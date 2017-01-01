@@ -42,13 +42,15 @@ cartesianCoordinate motorControl::getRobotOrientVector(tf::StampedTransform traf
 void motorControl::rotateToOdomVector(double angularVel, cartesianCoordinate targetVec){
     cartesianCoordinate orient;
     geometry_msgs::Twist vel_msg;
+
+    targetVec.normalize();
     while(ros::ok()){
         getTrafo_Odom2Robot();
         orient = getRobotOrientVector(trafo_Odom2Base);
-        if(acos(orient * targetVec) > 2 * ANGLE_CONTROL_PRECISION){
+        if((orient - targetVec).length() > 2 * ANGLE_CONTROL_PRECISION){
             vel_msg.angular.z = angularVel;
             velocityPub.publish(vel_msg);
-        }else if(acos(orient * targetVec) > ANGLE_CONTROL_PRECISION){
+        }else if((orient - targetVec).length() > ANGLE_CONTROL_PRECISION){
             vel_msg.angular.z = 0.2 * angularVel;
             velocityPub.publish(vel_msg);
         }else{
@@ -152,8 +154,128 @@ void motorControl::moveToOdomPose(double vel, cartesianCoordinate targetPose){
 void motorControl::moveToWorldPose(double vel, cartesianCoordinate targetPose){
 
 }
+//this function guides the robot to the left most obj on the right section of picture.
+void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam){        //angularVel must be negative
+    if(angularVel > 0) angularVel = -angularVel;
 
-void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor){        //angularVel must be negative
+    geometry_msgs::Twist vel_msg;
+    double offsetObjMid, offsetObjLeft;
+    radialCoordinate ObjPose;
+    bool existsObjMid(false), existsObjLeft(false);
+    bool existsLaserObj(false);
+
+    bool firstCamDataReady(false), firstLaserDataReady(false);
+    while(ros::ok()){
+        ros::spinOnce();
+        if(cameraProcessPtr->isCamDataAvailable){
+            firstCamDataReady = true;
+            cameraProcessPtr->detectObject(CLparam.objColor);
+            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjLeft = cameraProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
+            cameraProcessPtr->isCamDataAvailable = false;
+        }
+        if(laserProcessPtr->isLaserDataAvailable){
+            firstLaserDataReady = true;
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
+            laserProcessPtr->isLaserDataAvailable = false;
+        }
+        if(!firstCamDataReady || !firstLaserDataReady){
+            sample_rate.sleep();
+            continue;
+        }
+
+        if(existsObjMid){
+            vel_msg.angular.z = 4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+        }else if(existsObjLeft){
+            vel_msg.angular.z = 4*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+        }else{
+            vel_msg.angular.z = angularVel;
+        }
+
+        if(existsLaserObj){
+            if(ObjPose.r < minDist){
+                vel_msg.angular.z = 0;
+                vel_msg.linear.x = 0;
+                velocityPub.publish(vel_msg);
+                return;
+            }else{
+            vel_msg.linear.x = ObjPose.r/laserObject::MAX_DETECT_RANGE * linearVel;
+            //vel_msg.angular.z = -4*angularVel*sin(ObjPose.theta);
+            }
+        }else{
+            if(existsObjMid || existsObjLeft){
+                vel_msg.linear.x = linearVel;
+            }else{
+                vel_msg.linear.x = 0;
+            }
+        }
+        velocityPub.publish(vel_msg);
+        sample_rate.sleep();
+    }
+}
+//this function always guide robot to the left most obj on the left section of picture
+void motorControl::moveAndSearchLeftMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam){        //angularVel must be negative
+    if(angularVel > 0) angularVel = -angularVel;
+
+    geometry_msgs::Twist vel_msg;
+    double offsetObjMid, offsetObjLeft;
+    radialCoordinate ObjPose;
+    bool existsObjMid(false), existsObjLeft(false);
+    bool existsLaserObj(false);
+
+    bool firstCamDataReady(false), firstLaserDataReady(false);
+    while(ros::ok()){
+        ros::spinOnce();
+        if(cameraProcessPtr->isCamDataAvailable){
+            firstCamDataReady = true;
+            cameraProcessPtr->detectObject(CLparam.objColor);
+            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjLeft = cameraProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
+            cameraProcessPtr->isCamDataAvailable = false;
+        }
+        if(laserProcessPtr->isLaserDataAvailable){
+            firstLaserDataReady = true;
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
+            laserProcessPtr->isLaserDataAvailable = false;
+        }
+        if(!firstCamDataReady || !firstLaserDataReady){
+            sample_rate.sleep();
+            continue;
+        }
+
+        if(existsObjLeft){
+            vel_msg.angular.z = 4*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+        }else if(existsObjMid){
+            vel_msg.angular.z = 4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+        }else{
+            vel_msg.angular.z = -angularVel;
+        }
+
+        if(existsLaserObj){
+            if(ObjPose.r < minDist){
+                vel_msg.angular.z = 0;
+                vel_msg.linear.x = 0;
+                velocityPub.publish(vel_msg);
+                return;
+            }else{
+            vel_msg.linear.x = ObjPose.r/laserObject::MAX_DETECT_RANGE * linearVel;
+            //vel_msg.angular.z = -4*angularVel*sin(ObjPose.theta);
+            }
+        }else{
+            if(existsObjMid || existsObjLeft){
+                vel_msg.linear.x = linearVel;
+            }else{
+                vel_msg.linear.x = 0;
+            }
+        }
+        velocityPub.publish(vel_msg);
+        sample_rate.sleep();
+    }
+}
+//this function guides the robot to the right most obj on the left section of picture.
+void motorControl::moveToRightMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam){        //angularVel must be positive
+    if(angularVel < 0) angularVel = -angularVel;
+
     geometry_msgs::Twist vel_msg;
     double offsetObjMid, offsetObjRight;
     radialCoordinate ObjPose;
@@ -165,14 +287,14 @@ void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double
         ros::spinOnce();
         if(cameraProcessPtr->isCamDataAvailable){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(objcolor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(objcolor, offsetObjMid);
-            existsObjRight = cameraProcessPtr->leftMostObj(objcolor, winBeg, winEnd, offsetObjRight);
+            cameraProcessPtr->detectObject(CLparam.objColor);
+            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjRight = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
             cameraProcessPtr->isCamDataAvailable = false;
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
-            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(-M_PI/4, M_PI/4, ObjPose);
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
             laserProcessPtr->isLaserDataAvailable = false;
         }
         if(!firstCamDataReady || !firstLaserDataReady){
@@ -181,15 +303,15 @@ void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double
         }
 
         if(existsObjMid){
-            vel_msg.angular.z = 4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
         }else if(existsObjRight){
-            vel_msg.angular.z = 4*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -4*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
         }else{
             vel_msg.angular.z = angularVel;
         }
 
         if(existsLaserObj){
-            if(ObjPose.r < 0.3){
+            if(ObjPose.r < minDist){
                 vel_msg.angular.z = 0;
                 vel_msg.linear.x = 0;
                 velocityPub.publish(vel_msg);
@@ -209,12 +331,14 @@ void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double
         sample_rate.sleep();
     }
 }
+//this function always guide robot to the right most obj on the right section of picture
+void motorControl::moveAndSearchRightMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam){        //angularVel must be positive
+    if(angularVel < 0) angularVel = -angularVel;
 
-void motorControl::moveToRightMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor){        //angularVel must be positive
     geometry_msgs::Twist vel_msg;
-    double offsetObjMid, offsetObjLeft;
+    double offsetObjMid, offsetObjRight;
     radialCoordinate ObjPose;
-    bool existsObjMid(false), existsObjLeft(false);
+    bool existsObjMid(false), existsObjRight(false);
     bool existsLaserObj(false);
 
     bool firstCamDataReady(false), firstLaserDataReady(false);
@@ -222,14 +346,14 @@ void motorControl::moveToRightMostObj(double linearVel, double angularVel, doubl
         ros::spinOnce();
         if(cameraProcessPtr->isCamDataAvailable){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(objcolor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(objcolor, offsetObjMid);
-            existsObjLeft = cameraProcessPtr->rightMostObj(objcolor, winBeg, winEnd, offsetObjLeft);
+            cameraProcessPtr->detectObject(CLparam.objColor);
+            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjRight = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
             cameraProcessPtr->isCamDataAvailable = false;
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
-            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(-M_PI/4, M_PI/4, ObjPose);
+            existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
             laserProcessPtr->isLaserDataAvailable = false;
         }
         if(!firstCamDataReady || !firstLaserDataReady){
@@ -237,16 +361,16 @@ void motorControl::moveToRightMostObj(double linearVel, double angularVel, doubl
             continue;
         }
 
-        if(existsObjMid){
+        if(existsObjRight){
+            vel_msg.angular.z = -4*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+        }else if(existsObjMid){
             vel_msg.angular.z = -4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
-        }else if(existsObjLeft){
-            vel_msg.angular.z = -4*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
         }else{
-            vel_msg.angular.z = angularVel;
+            vel_msg.angular.z = -angularVel;
         }
 
         if(existsLaserObj){
-            if(ObjPose.r < 0.3){
+            if(ObjPose.r < minDist){
                 vel_msg.angular.z = 0;
                 vel_msg.linear.x = 0;
                 velocityPub.publish(vel_msg);
@@ -256,7 +380,7 @@ void motorControl::moveToRightMostObj(double linearVel, double angularVel, doubl
             //vel_msg.angular.z = -4*angularVel*sin(ObjPose.theta);
             }
         }else{
-            if(existsObjMid || existsObjLeft){
+            if(existsObjMid || existsObjRight){
                 vel_msg.linear.x = linearVel;
             }else{
                 vel_msg.linear.x = 0;
@@ -301,9 +425,13 @@ void motorControl::moveByDist(double vel, double dist){
     while(ros::ok()){
         getTrafo_Odom2Robot();
         targetPoseInRobot = trafo_Odom2Base.inverse() * targetPoseInOdom;
-        if(targetPoseInRobot.length() > POSITION_PRECISION){
+        if(targetPoseInRobot.length() > 4*POSITION_PRECISION){
             vel_msg.angular.z = 8*vel * atan2(targetPoseInRobot.getY(), targetPoseInRobot.getX());
-            vel_msg.linear.x = vel * sqrt(pow(targetPoseInRobot.getX(), 2) + pow(targetPoseInRobot.getY(), 2));
+            vel_msg.linear.x = vel;
+            velocityPub.publish(vel_msg);
+        }else if(targetPoseInRobot.length() > POSITION_PRECISION){
+            vel_msg.angular.z = 2*vel * atan2(targetPoseInRobot.getY(), targetPoseInRobot.getX());
+            vel_msg.linear.x = vel * targetPoseInRobot.length();
             velocityPub.publish(vel_msg);
         }else{
             vel_msg.angular.z = 0;

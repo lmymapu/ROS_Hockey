@@ -198,6 +198,18 @@ bool laserObject::findLeftMostObjectRadialPose(double angleMin, double angleMax,
     return isFound;
 }
 
+bool laserObject::findLeftMostObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &leftPose){
+    while(ros::ok()){
+        ros::spinOnce();
+        if(isLaserDataAvailable){
+            isLaserDataAvailable=false;
+            return findLeftMostObjectRadialPose(angleMin, angleMax, leftPose);
+        }else{
+            sample_rate.sleep();
+        }
+    }
+}
+
 bool laserObject::findRightMostObjectRadialPose(double angleMin, double angleMax, radialCoordinate &rightPose){
     rightPose.theta = M_PI;
     bool isFound = false;
@@ -209,6 +221,18 @@ bool laserObject::findRightMostObjectRadialPose(double angleMin, double angleMax
         }
     }
     return isFound;
+}
+
+bool laserObject::findRightMostObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &rightPose){
+    while(ros::ok()){
+        ros::spinOnce();
+        if(isLaserDataAvailable){
+            isLaserDataAvailable=false;
+            return findRightMostObjectRadialPose(angleMin, angleMax, rightPose);
+        }else{
+            sample_rate.sleep();
+        }
+    }
 }
 
 bool laserObject::findClosestObjectRadialPose(double angleMin, double angleMax, radialCoordinate &closestDist){
@@ -224,35 +248,12 @@ bool laserObject::findClosestObjectRadialPose(double angleMin, double angleMax, 
     return isFound;
 }
 
-
-bool laserObject::findClosestObjectCartPose(double angleMin, double angleMax, cartesianCoordinate &closestDist){
-    bool isFound;
-    radialCoordinate closestDistRadial;
-    isFound = findClosestObjectRadialPose(angleMin, angleMax, closestDistRadial);
-    closestDist = radial2cart(closestDistRadial);
-    return isFound;
-}
-
-
 bool laserObject::findClosestObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &closestDist){
     while(ros::ok()){
         ros::spinOnce();
         if(isLaserDataAvailable){
             isLaserDataAvailable=false;
             return findClosestObjectRadialPose(angleMin, angleMax, closestDist);
-        }else{
-            sample_rate.sleep();
-        }
-    }
-}
-
-
-bool laserObject::findClosestObjectCartPose_blk(double angleMin, double angleMax, cartesianCoordinate &closestDist){
-    while(ros::ok()){
-        ros::spinOnce();
-        if(isLaserDataAvailable){
-            isLaserDataAvailable=false;
-            return findClosestObjectCartPose(angleMin, angleMax, closestDist);
         }else{
             sample_rate.sleep();
         }

@@ -17,9 +17,9 @@ enum fieldRecogState{
     halt_pos2,
     move_23,
     halt_pos3,
-    move_34,
+    move_34,move_30,
     halt_pos4,
-    move_45,
+    move_45,move_40,
     halt_pos5,
     move_50,
     end_pos0,
@@ -56,7 +56,7 @@ private:
 
     cartesianCoordinate calculateObjOdomPose(cartesianCoordinate robotPose);
 public:
-    const static double MINDIST_OBJECT = 0.3;
+    const static double MINDIST_OBJECT = 0.4;
     const static double NORMAL_LINEAR_VEL = 0.5;
     const static double FINECTRL_LINEAR_VEL = 0.2;
     const static double NORMAL_ANGULAR_VEL = 0.5;

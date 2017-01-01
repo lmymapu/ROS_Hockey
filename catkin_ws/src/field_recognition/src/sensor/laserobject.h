@@ -24,11 +24,11 @@ public:
     vector<cartesianCoordinate> objectsInOdomCartCoor;
     void showObjectsPose();
     bool findClosestObjectRadialPose(double angleMin, double angleMax, radialCoordinate &closestDist);
-    bool findClosestObjectCartPose(double angleMin, double angleMax, cartesianCoordinate &closestDist);
     bool findClosestObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &closestDist);
-    bool findClosestObjectCartPose_blk(double angleMin, double angleMax, cartesianCoordinate &closestDist);
     bool findLeftMostObjectRadialPose(double angleMin, double angleMax, radialCoordinate &leftPose);
+    bool findLeftMostObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &leftPose);
     bool findRightMostObjectRadialPose(double angleMin, double angleMax, radialCoordinate &rightPose);
+    bool findRightMostObjectRadialPose_blk(double angleMin, double angleMax, radialCoordinate &rightPose);
 
     void transformOdomCartCoor(tf::StampedTransform trafo_Odom2Base);
 

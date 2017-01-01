@@ -50,35 +50,11 @@ void fieldRecogAI::nextStateControl(){
         break;
     case halt_pos3:
         if(isRecogJobFinished){
-            stat = move_34;
+            stat = move_30;
             isRecogJobFinished = false;
         }
         break;
-    case move_34:
-        if(isMovingFinished){
-            stat = halt_pos4;
-            isMovingFinished = false;
-        }
-        break;
-    case halt_pos4:
-        if(isRecogJobFinished){
-            stat = move_45;
-            isRecogJobFinished = false;
-        }
-        break;
-    case move_45:
-        if(isMovingFinished){
-            stat = halt_pos5;
-            isMovingFinished = false;
-        }
-        break;
-    case halt_pos5:
-        if(isRecogJobFinished){
-            stat = move_50;
-            isRecogJobFinished = false;
-        }
-        break;
-    case move_50:
+    case move_30:
         if(isMovingFinished){
             stat = end_pos0;
             isMovingFinished = false;
@@ -86,11 +62,13 @@ void fieldRecogAI::nextStateControl(){
         break;
     case end_pos0:
         break;
+    default:
+        break;
     }
 }
 
 void fieldRecogAI::stateAction(){
-    cartesianCoordinate tarVec;
+    cartesianCoordinate tarVec, tarPose;
     radialCoordinate objRadialPose;
     cartesianCoordinate objRobotCartPose, objOdomCartPose;
     ObjectInMap postObj;
@@ -98,8 +76,8 @@ void fieldRecogAI::stateAction(){
 
     switch(stat){
     case start_pos0:
-        //turn left by 90 degree
-        tarVec.setVal(0,1);
+        //turn left by 180 degree
+        tarVec.setVal(-1,0);
         motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
         //slowly rotate right, until the camera captures a green post at front
         //motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, green);
@@ -107,147 +85,78 @@ void fieldRecogAI::stateAction(){
         break;
     case move_01:
         //move forward until the nearest obj is within a minimal range
-        motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL, NORMAL_ANGULAR_VEL, 0.5, 1, green);
+        motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL, -NORMAL_ANGULAR_VEL, MINDIST_OBJECT, CamLaserGuide(0.5,1,-M_PI/9,M_PI/4,green));
         isMovingFinished = true;
         break;
     case halt_pos1:
         //recognise the nearest object with laser
-        laserProcess.findClosestObjectRadialPose_blk(-M_PI/6, M_PI/6, objRadialPose);
-        //adjust robot orientation until there is an object at front
-        if(objRadialPose.theta > 0){
-            motorProcess.rotateUntilObjInMiddle(FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
-        }else{
-            motorProcess.rotateUntilObjInMiddle(-FINECTRL_ANGULAR_VEL, -M_PI/12, M_PI/12);
-        }
-        //confirm with camera if this object is a post (in green color)
-        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
-            objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
-            postObj.setValue(4, green, post, objOdomCartPose);
-            hockeyField.postObjs[4] = postObj;
-        }else{
-            ROS_ERROR("Post 4 detection failed!");
-        }
-        isRecogJobFinished = true;
-        break;
-    case move_12:
-        //turn left by 90°.
-        tarVec.x = -1; tarVec.y = 0;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
-        motorProcess.moveUntilMinDist(NORMAL_LINEAR_VEL, MINDIST_OBJECT, M_PI);
-        isMovingFinished = true;
-        break;
-    case halt_pos2:
-        //recognise the first object on the right
-        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
-        //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
-        //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
-            objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
-            postObj.setValue(2, green, post, objOdomCartPose);
-            hockeyField.postObjs[2] = postObj;
-        }else{
-            ROS_ERROR("Post 2 detection failed!");
-        }
-        //remember the vector/orientation defined by post4->post2
-        yAxisInOdom = calculateUnitVec(hockeyField.postObjs[4].poseInOdom, hockeyField.postObjs[2].poseInOdom);
-        xAxisInOdom = getXfromY(yAxisInOdom);
-        isRecogJobFinished = true;
-        break;
-    case move_23:
-        //rotate the roboter until it's parallel with the vector post4->post2
-        tarVec = -yAxisInOdom;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL,tarVec);
-        //move forward
-        motorProcess.moveUntilMinDist(NORMAL_LINEAR_VEL, MINDIST_OBJECT, M_PI);
-        isMovingFinished = true;
-        break;
-    case halt_pos3:
-        //recognise the first object on the right
-        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
-        //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/9);
-        //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
+        if(laserProcess.findLeftMostObjectRadialPose_blk(-M_PI/2, M_PI/6, objRadialPose)){
+            objRobotCartPose = radial2cart(objRadialPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(0, green, post, objOdomCartPose);
             hockeyField.postObjs[0] = postObj;
         }else{
             ROS_ERROR("Post 0 detection failed!");
         }
-        //remember the vector/orientation defined by post4->post0
-        yAxisInOdom = calculateUnitVec(hockeyField.postObjs[4].poseInOdom, hockeyField.postObjs[0].poseInOdom);
-        xAxisInOdom = getXfromY(yAxisInOdom);
-        hockeyField.a = normVec(hockeyField.postObjs[4].poseInOdom, hockeyField.postObjs[0].poseInOdom);
         isRecogJobFinished = true;
         break;
-    case move_34:
-        //turn left until roboter orientes perpendicular to y axis
-        tarVec = xAxisInOdom;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL,tarVec);
-        //move forward
-        motorProcess.moveUntilMinDist(NORMAL_LINEAR_VEL, MINDIST_OBJECT, M_PI);
+    case move_12:
+        //turn left by 90°.
+        tarVec.setVal(1,-1);
+        motorProcess.rotateToOdomVector(-NORMAL_ANGULAR_VEL, tarVec);
+        tarPose.setVal(0,0);
+        motorProcess.moveToOdomPose(NORMAL_LINEAR_VEL, tarPose);
+        tarVec.setVal(-1,0);
+        motorProcess.rotateToOdomVector(-NORMAL_ANGULAR_VEL, tarVec);
+        motorProcess.moveToRightMostObj(NORMAL_LINEAR_VEL, NORMAL_ANGULAR_VEL, MINDIST_OBJECT, CamLaserGuide(0,0.5,-M_PI/4,M_PI/9,green));
         isMovingFinished = true;
         break;
-    case halt_pos4:
+    case halt_pos2:
         //recognise the first object on the right
-        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
-        //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
-        //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
+        if(laserProcess.findRightMostObjectRadialPose_blk(-M_PI/6, M_PI/2, objRadialPose)){
+            objRobotCartPose = radial2cart(objRadialPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
             postObj.setValue(1, green, post, objOdomCartPose);
             hockeyField.postObjs[1] = postObj;
         }else{
             ROS_ERROR("Post 1 detection failed!");
         }
-        //remember the vector/orientation defined by post0->post1
         xAxisInOdom = calculateUnitVec(hockeyField.postObjs[1].poseInOdom, hockeyField.postObjs[0].poseInOdom);
         yAxisInOdom = getYfromX(xAxisInOdom);
-        hockeyField.b = normVec(hockeyField.postObjs[1].poseInOdom, hockeyField.postObjs[0].poseInOdom);
         isRecogJobFinished = true;
         break;
-    case move_45:
-        //turn left until roboter orients along y-axis
-        tarVec = yAxisInOdom;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
-        motorProcess.moveByDist(NORMAL_LINEAR_VEL, normVec(hockeyField.postObjs[2].poseInOdom, hockeyField.postObjs[0].poseInOdom));
-        motorProcess.moveUntilMinDist(NORMAL_LINEAR_VEL, MINDIST_OBJECT, M_PI);
+    case move_23:
+        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, yAxisInOdom - xAxisInOdom);
+        tarPose.setVal(0,0);
+        motorProcess.moveToOdomPose(NORMAL_LINEAR_VEL, tarPose);
+        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, -xAxisInOdom);
+        motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL, -NORMAL_ANGULAR_VEL, MINDIST_OBJECT, CamLaserGuide(0.5,1,-M_PI/9,M_PI/4,green));
         isMovingFinished = true;
         break;
-    case halt_pos5:
+    case halt_pos3:
         //recognise the first object on the right
-        laserProcess.findClosestObjectRadialPose_blk(-M_PI/2, 0, objRadialPose);
-        //rotate right until there is an object at front
-        motorProcess.rotateUntilObjInMiddle(-NORMAL_ANGULAR_VEL, -M_PI/2, M_PI/18);
-        //confirm with camera if this object is a post
-        if(cameraProcess.objectInMiddle(green, objOffsetInPic)){
-            laserProcess.findClosestObjectCartPose_blk(-M_PI/12, M_PI/12, objRobotCartPose);
+        if(laserProcess.findLeftMostObjectRadialPose_blk(-M_PI/2, M_PI/6, objRadialPose)){
+            objRobotCartPose = radial2cart(objRadialPose);
             objOdomCartPose = calculateObjOdomPose(objRobotCartPose);
-            postObj.setValue(5, green, post, objOdomCartPose);
-            hockeyField.postObjs[5] = postObj;
+            postObj.setValue(4, green, post, objOdomCartPose);
+            hockeyField.postObjs[4] = postObj;
         }else{
             ROS_ERROR("Post 1 detection failed!");
         }
+        hockeyField.b = normVec(hockeyField.postObjs[1].poseInOdom, hockeyField.postObjs[0].poseInOdom);
+        hockeyField.a = normVec(hockeyField.postObjs[4].poseInOdom, hockeyField.postObjs[0].poseInOdom);
         isRecogJobFinished = true;
         break;
-    case move_50:
-        //turn left until roboter orients along -x-axis
-        tarVec = -xAxisInOdom;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
+    case move_30:
+        //turn left until roboter orientes perpendicular to y axis
+        motorProcess.rotateToOdomVector(-NORMAL_ANGULAR_VEL,xAxisInOdom);
         //move forward
-        motorProcess.moveByDist(NORMAL_LINEAR_VEL, hockeyField.a/2);
+        motorProcess.moveByDist(NORMAL_LINEAR_VEL, hockeyField.b/2);
+        motorProcess.rotateToOdomVector(-NORMAL_ANGULAR_VEL, -yAxisInOdom);
         isMovingFinished = true;
         break;
     case end_pos0:
         //turn left until roboter orients along -y-axis
-        tarVec = -yAxisInOdom;
-        motorProcess.rotateToOdomVector(NORMAL_ANGULAR_VEL, tarVec);
         //recognize the color of gate.
         //recognize team color
         //turn right around until roboter orients along y-axis
@@ -303,10 +212,10 @@ void fieldRecogAI::testDataReceipt(){
 void fieldRecogAI::startFieldRecognition(){
     motorProcess.initMotor(&laserProcess, &cameraProcess);
     ROS_INFO("Start recognizing field");
-    //motorProcess.rotateUntilObjInMiddle(NORMAL_ANGULAR_VEL, -M_PI/18, M_PI/2);
-    motorProcess.moveToLeftMostObj(NORMAL_LINEAR_VEL,-NORMAL_ANGULAR_VEL, 0.5, 1, green);
-    /*while(1){
+    //motorProcess.moveToLeftMostObj(0.5, 0.5, 0.5, 1, 0.4, green);
+   // motorProcess.moveToRightMostObj(0.5, 0.5, 0, 0.5, 0.4, green);
+    while(1){
         stateAction();
         nextStateControl();
-    }*/
+    }
 }

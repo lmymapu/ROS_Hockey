@@ -8,7 +8,19 @@
 #include <string>
 #include "globalConfig.h"
 
-#define MOTOR_IN_SIMULATOR
+struct CamLaserGuide{
+    double camWindowBeg;
+    double camWindowEnd;
+    double laserWindowBeg;
+    double laserWindowEnd;
+    Color objColor;
+    CamLaserGuide():camWindowBeg(0),camWindowEnd(1),laserWindowBeg(-M_PI),laserWindowEnd(M_PI),objColor(green){}
+    CamLaserGuide(double CWB, double CWE, double LWB, double LWE, Color C):
+        camWindowBeg(CWB),camWindowEnd(CWE),laserWindowBeg(LWB),laserWindowEnd(LWE),objColor(C){}
+    void setValue(double CWB, double CWE, double LWB, double LWE, Color C){
+        camWindowBeg=CWB; camWindowEnd=CWE; laserWindowBeg=LWB; laserWindowEnd=LWE, objColor=C;
+    }
+};
 
 using namespace std;
 class motorControl
@@ -39,8 +51,10 @@ public:
     void rotateUntilObjInMiddle(double angularVel, Color objcolor);     //obj captured by camera
     void moveToOdomPose(double vel, cartesianCoordinate targetPose);
     void moveToWorldPose(double vel, cartesianCoordinate targetPose);
-    void moveToLeftMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor);
-    void moveToRightMostObj(double linearVel, double angularVel, double winBeg, double winEnd, Color objcolor);
+    void moveToLeftMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam);
+    void moveAndSearchLeftMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam);
+    void moveToRightMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam);
+    void moveAndSearchRightMostObj(double linearVel, double angularVel, double minDist, CamLaserGuide CLparam);
     void moveUntilMinDist(double vel, double dist, double detectAngleRange);
     void moveByDist(double vel, double dist);
     void testDataReceipt();
