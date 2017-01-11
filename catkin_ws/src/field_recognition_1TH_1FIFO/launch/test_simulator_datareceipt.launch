@@ -1,0 +1,8 @@
+<launch> 
+	<param name="/use_sim_time" value="false"/>	
+	<arg name="world_file" default="/home/leoia/work/catkin_ws/src/field_recognition/world/hokey3.world"/>
+        <node name="stage" pkg="stage_ros" type="stageros" args="$(arg world_file)"/>
+	<node name="fieldRecognition" pkg="field_recognition" type="fieldRecog_rechAngle" output="screen"/>
+	<node name="worldConsole" pkg="field_recognition" type="interactor" output="screen"/>
+	<!--node name="world_coor_node" pkg="test_laser_camera" type="world_broadcaster" output="screen"/-->	
+</launch>
