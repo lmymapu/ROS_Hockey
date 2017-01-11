@@ -1,5 +1,0 @@
-#ifndef GLOBALCONFIG_H
-#define GLOBALCONFIG_H
-#define SIMULATION_MODE
-
-#endif // GLOBALCONFIG_H
