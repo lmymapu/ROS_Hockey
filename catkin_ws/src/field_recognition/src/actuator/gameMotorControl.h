@@ -27,7 +27,12 @@ public:
     }
 protected:
     vector<controlMessage> msg_buffer;
-    turtlebotCamera3D *cam3DProcessPtr;
+    tf::StampedTransform trafo_Odom2Cam,trafo_World2Cam;
+    tf::StampedTransform trafo_Odom2Laser, trafo_World2Laser;
+    cartesianCoordinate calculateObjWorldPose_fromCam(radialCoordinate robotPose);
+    cartesianCoordinate calculateObjOdomPose_fromCam(radialCoordinate robotPose);
+    cartesianCoordinate calculateObjWorldPose_fromLaser(radialCoordinate robotPose);
+    cartesianCoordinate calculateObjOdomPose_fromLaser(radialCoordinate robotPose);
 };
 
 #endif // GAMEMOTORCONTROL_H

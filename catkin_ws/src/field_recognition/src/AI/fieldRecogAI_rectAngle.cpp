@@ -1,4 +1,31 @@
 #include "fieldRecogAI.h"
+
+#ifdef SINGLE_FIFO_TH_DATAREQ
+fieldRecogAI::fieldRecogAI()
+{
+    stat = start_pos0;
+    isRecogJobFinished = false;
+    isMovingFinished = false;
+    xAxisInOdom.x = 0; xAxisInOdom.y = -1;
+    yAxisInOdom.x = 1; yAxisInOdom.y = 0;
+    send_trafo = AI_node.serviceClient<field_recognition::convert_frames>("convertFrames");
+    //motorProcessPtr = new motorControl(laserProcess, cameraProcess);
+}
+#endif
+
+#ifdef MULTI_FIFO_DATAREQ
+fieldRecogAI::fieldRecogAI()
+{
+    stat = start_pos0;
+    isRecogJobFinished = false;
+    isMovingFinished = false;
+    xAxisInOdom.x = 0; xAxisInOdom.y = -1;
+    yAxisInOdom.x = 1; yAxisInOdom.y = 0;
+    send_trafo = AI_node.serviceClient<field_recognition::convert_frames>("convertFrames");
+    //motorProcessPtr = new motorControl(laserProcess, cameraProcess);
+}
+#endif
+
 #ifdef MULTI_TH_DATAREQ
 fieldRecogAI::fieldRecogAI():data_request(NUM_OF_DATAREQ_THREAD)
 {
@@ -13,7 +40,7 @@ fieldRecogAI::fieldRecogAI():data_request(NUM_OF_DATAREQ_THREAD)
 #endif
 
 #ifdef MULTI_FIFO_TH_DATAREQ
-fieldRecogAI::fieldRecogAI():laser_request(1, &(laserProcess.Laser_queue)),cam2D_request(1, &(cameraProcess.Cam2D_queue))
+fieldRecogAI::fieldRecogAI():laser_request(NUM_OF_THREAD_MULTIFIFO, &(laserProcess.Laser_queue)),cam2D_request(NUM_OF_THREAD_MULTIFIFO, &(cameraProcess.Cam2D_queue))
 {
     stat = start_pos0;
     isRecogJobFinished = false;

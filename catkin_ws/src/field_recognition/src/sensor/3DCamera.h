@@ -14,10 +14,37 @@
 #include "sensor_msgs/PointCloud2.h"
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include "globalConfig.h"
 
 class Trackbar;
 
-class turtlebotCamera3D
+class sepDataQueue3D
+{
+public:
+    ros::NodeHandle nh, nh3D;
+#ifdef SINGLE_FIFO_TH_DATAREQ
+    sepDataQueue3D(){}
+#endif
+#ifdef MULTI_TH_DATAREQ
+    sepDataQueue3D(){}
+#endif
+#ifdef MULTI_FIFO_DATAREQ
+    ros::CallbackQueue Img_queue,PtCloud_queue;
+    sepDataQueue3D(){
+        nh.setCallbackQueue(&Img_queue);
+        nh3D.setCallbackQueue(&PtCloud_queue);
+    }
+#endif
+#ifdef MULTI_FIFO_TH_DATAREQ
+    ros::CallbackQueue Img_queue,PtCloud_queue;
+    sepDataQueue3D(){
+        nh.setCallbackQueue(&Img_queue);
+        nh3D.setCallbackQueue(&PtCloud_queue);
+    }
+#endif
+};
+
+class turtlebotCamera3D:public sepDataQueue3D
 {
 public:
     std::map<Color, cv::Scalar> lowRanges;
@@ -43,9 +70,8 @@ public:
 
 private:
     // ros node handle
-    ros::NodeHandle nh;
     image_transport::ImageTransport it;
-
+    // ros::NodeHandle nh;
     // image subscriber
     image_transport::Subscriber imSub;
     // point cloud subscriber

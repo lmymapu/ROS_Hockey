@@ -164,11 +164,12 @@ aux_source_directory(src/AI SRC_AI)
 aux_source_directory(src/playground SRC_MAP)
 aux_source_directory(src/connection SRC_CONNECT)
 #add_executable(fieldRecog_rechAngle src/AI/fieldRecogAI_rectAngle.cpp)
-add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP}
-    src/sensor/Camera.h src/sensor/laserobject.h src/sensor/CamObject.h src/sensor/trackbar.h src/sensor/3DCamera.h src/sensor/3DCamObject.h
-    src/playground/ObjectInMap.h src/playground/CommonMath.h src/playground/Map.h
-    src/AI/fieldRecogAI.h src/AI/gameAI.h
-    src/actuator/motorControl.h src/actuator/gameMotorControl.h src/globalConfig.h)
+#add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP}
+#    src/sensor/Camera.h src/sensor/laserobject.h src/sensor/CamObject.h src/sensor/trackbar.h src/sensor/3DCamera.h src/sensor/3DCamObject.h
+#    src/playground/ObjectInMap.h src/playground/CommonMath.h src/playground/Map.h
+#    src/AI/fieldRecogAI.h src/AI/gameAI.h
+#    src/actuator/motorControl.h src/actuator/gameMotorControl.h src/globalConfig.h)
+add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP})
 add_executable(interactor src/interactor.cpp ${SRC_CONNECT}
     src/connection/worldFrameBroadcast.h)
 

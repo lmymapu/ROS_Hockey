@@ -9,10 +9,11 @@
 
 using namespace cv;
 using namespace std;
-turtlebotCamera3D::turtlebotCamera3D():it(nh), mLength(0), mWidth(0), mMaxDistance(10),is2DImgAvailable(false),is3DImgAvailable(true)
+turtlebotCamera3D::turtlebotCamera3D():it(nh), mLength(0), mWidth(0), mMaxDistance(10),
+    is2DImgAvailable(false),is3DImgAvailable(false)
 {
-    imSub = it.subscribe("/camera/rgb/image_raw", 2, &turtlebotCamera3D::imageCb, this);
-    pcSub = nh.subscribe("/camera/depth/points", 2, &turtlebotCamera3D::pointCloudCb, this);
+    imSub = it.subscribe("/camera/rgb/image_raw", CAM3D_IMG_FIFO_LENGTH, &turtlebotCamera3D::imageCb, this);
+    pcSub = nh3D.subscribe("/camera/depth/points", CAM3D_PTCLOUD_FIFO_LENGTH, &turtlebotCamera3D::pointCloudCb, this);
     /*sensor_msgs::PointCloud2 a;
     a.data.reverse_iterator
     /*mTrackbar = new Trackbar("HSV Trackbar1");

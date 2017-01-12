@@ -6,9 +6,9 @@
 int main(int argc, char** argv){
     ros::init(argc, argv, "fieldRecog_rechAngle");
 #ifdef TEST_MODE
-    fieldRecogAI detectField;
+    gameAI gameRoutine;
     Map playground;
-    detectField.startFieldRecognition();
+    gameRoutine.startFighting();
 #else
     fieldRecogAI detectField;
     Map playground;

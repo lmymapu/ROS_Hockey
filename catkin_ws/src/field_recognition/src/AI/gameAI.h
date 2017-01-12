@@ -22,12 +22,21 @@ enum GameState{
 class gameAI
 {
 public:
-#ifdef MULTI_TH_DATAREQ
-    gameAI():stat(SEARCH_PUCK),data_request(NUM_OF_DATAREQ_THREAD){}
-#else
+#ifdef SINGLE_FIFO_TH_DATAREQ
     gameAI():stat(SEARCH_PUCK){}
 #endif
-    gameAI(const Map &field);
+#ifdef MULTI_FIFO_DATAREQ
+    gameAI():stat(SEARCH_PUCK){}
+#endif
+#ifdef MULTI_TH_DATAREQ
+    gameAI():stat(SEARCH_PUCK),data_request(NUM_OF_DATAREQ_THREAD){}
+#endif
+
+#ifdef MULTI_FIFO_TH_DATAREQ
+    gameAI():stat(SEARCH_PUCK),laser_request(NUM_OF_THREAD_MULTIFIFO, &(laserProcess.Laser_queue)),
+        cam3DImg_request(NUM_OF_THREAD_MULTIFIFO, &(cam3DProcess.Img_queue)),
+        cam3DPtCloud_request(NUM_OF_THREAD_MULTIFIFO, &(cam3DProcess.PtCloud_queue)){}
+#endif
     Map hockeyField;
 
     void startFighting();
@@ -37,6 +46,9 @@ public:
 private:
 #ifdef MULTI_TH_DATAREQ
     ros::AsyncSpinner data_request;
+#endif
+#ifdef MULTI_FIFO_TH_DATAREQ
+    ros::AsyncSpinner laser_request, cam3DImg_request, cam3DPtCloud_request;
 #endif
     ros::NodeHandle AI_node;
     gameMotorControl motorProcess;

@@ -1,15 +1,5 @@
 #include "gameAI.h"
-#ifdef MULTI_TH_DATAREQ
-gameAI::gameAI(const Map &field):stat(SEARCH_PUCK),data_request(NUM_OF_DATAREQ_THREAD)
-{
-    hockeyField = field;
-}
-#else
-gameAI::gameAI(const Map &field):stat(SEARCH_PUCK)
-{
-    hockeyField = field;
-}
-#endif
+
 
 void gameAI::stateTransition(){
     switch(stat){
@@ -79,11 +69,12 @@ void gameAI::testDataReceipt(){
             ROS_ERROR("%s", ex.what());
         }
         ROS_INFO_STREAM("robot pose: "<<trafo_Odom2Base.getOrigin().getX() << "  "<<trafo_Odom2Base.getOrigin().getY());
-#ifndef MULTI_TH_DATAREQ
+#ifdef SINGLE_FIFO_TH_DATAREQ
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        ros::spinOnce();
+        cam3DProcess.Img_queue.callOne();
+        cam3DProcess.PtCloud_queue.callOne();
         laserProcess.Laser_queue.callOne();
 #endif
 
@@ -103,7 +94,15 @@ void gameAI::testDataReceipt(){
 }
 
 void gameAI::startFighting(){
-//    data_request.start();
+#ifdef MULTI_TH_DATAREQ
+    data_request.start();
+#endif
+#ifdef MULTI_FIFO_TH_DATAREQ
+    laser_request.start();
+    cam3DImg_request.start();
+    cam3DPtCloud_request.start();
+#endif
+
     motorProcess.initGameMotor(&laserProcess, &cam3DProcess);
     ROS_INFO("Hockey Game Started!");
 #ifdef TEST_MODE
@@ -112,6 +111,14 @@ void gameAI::startFighting(){
     while(1){
         stateTransition();
         if(stat=GAME_OVER){
+#ifdef MULTI_FIFO_TH_DATAREQ
+            laser_request.stop();
+            cam3DImg_request.stop();
+            cam3DPtCloud_request.stop();
+#endif
+#ifdef MULTI_TH_DATAREQ
+            data_request.stop();
+#endif
             ROS_INFO("Hockey Game Over!");
             break;
         }

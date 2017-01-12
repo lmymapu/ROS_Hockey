@@ -1,13 +1,14 @@
 #ifndef GLOBALCONFIG_H
 #define GLOBALCONFIG_H
-#define SIMULATION_MODE
-//#define TEST_MODE
+//#define SIMULATION_MODE
+#define TEST_MODE
 //#define SINGLE_FIFO_TH_DATAREQ
-#define MULTI_TH_DATAREQ
+//#define MULTI_TH_DATAREQ
 //#define MULTI_FIFO_DATAREQ
-//#define MULTI_FIFO_TH_DATAREQ
+#define MULTI_FIFO_TH_DATAREQ
 //params to threading management
 const int NUM_OF_DATAREQ_THREAD = 3;
+const int NUM_OF_THREAD_MULTIFIFO = 3;
 
 //params to objects in map
 const double OBJ_POST_RADIUS = 0.015;
@@ -38,6 +39,10 @@ const double LASER_ANGLE_OFFSET=M_PI;
 //params to camera detection
 const int CAM_FIFO_LENGTH = 1;
 const double CAM_MID_REGION = 0.2;
+
+//params to 3D camera detection
+const int CAM3D_IMG_FIFO_LENGTH = 2;
+const int CAM3D_PTCLOUD_FIFO_LENGTH = 2;
 
 //params to field recognition AI
 const double RECAI_MINDIST_OBJ = 0.5;

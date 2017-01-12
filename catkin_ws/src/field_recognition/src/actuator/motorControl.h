@@ -2,6 +2,7 @@
 #define MOTORCONTROL_H
 #include "Camera.h"
 #include "CamObject.h"
+#include "3DCamera.h"
 #include "laserobject.h"
 #include "geometry_msgs/Twist.h"
 #include "ros/ros.h"
@@ -29,6 +30,9 @@ public:
     motorControl();
     //motorControl(laserObject &lobj, turtlebotCamera &Cobj);
     void initMotor(laserObject *, turtlebotCamera*);
+    void addLaserSensor(laserObject *lp){laserProcessPtr = lp;}
+    void addCam2DSensor(turtlebotCamera *cp){cameraProcessPtr = cp;}
+    void addCam3DSensor(turtlebotCamera3D *cp3d){cam3DProcessPtr = cp3d;}
 
 protected:
     ros::NodeHandle motor_node;
@@ -38,6 +42,7 @@ protected:
     tf::StampedTransform trafo_Odom2Base;
     laserObject *laserProcessPtr;
     turtlebotCamera *cameraProcessPtr;
+    turtlebotCamera3D *cam3DProcessPtr;
     //laserObject laserProcess;
     //turtlebotCamera cameraProcess;
     vector<CamObject> camObj;
