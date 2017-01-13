@@ -7,7 +7,7 @@ a=0; b=0;
 
 void Map::printMap(){
     fstream outputMap;
-    outputMap.open("/home/leoia/work/catkin_ws/src/field_recognition/mapinfo.txt", fstream::out);
+    outputMap.open("/home/gruppe5/gruppe5/catkin_ws/src/field_recognition/mapinfo.txt", fstream::out);
     outputMap << "Team color is " << teamColor <<endl;
     outputMap << "playground size: a = "<<a<<", b = "<<b<<endl;
     outputMap << "post 0: [ " << postObjs[0].poseInWorld.x <<"\t"<< postObjs[0].poseInWorld.y <<" ]" <<endl;
@@ -20,5 +20,7 @@ void Map::printMap(){
     outputMap << "post 9: [ " << postObjs[9].poseInWorld.x <<"\t"<< postObjs[9].poseInWorld.y <<" ]" <<endl;
     outputMap << "post 12: [ " << postObjs[12].poseInWorld.x <<"\t"<< postObjs[12].poseInWorld.y <<" ]" <<endl;
     outputMap << "post 13: [ " << postObjs[13].poseInWorld.x <<"\t"<< postObjs[13].poseInWorld.y <<" ]" <<endl;
+    outputMap << "Yellow gate center:" << yellowGate.poseInWorld.x <<"\t"<< yellowGate.poseInWorld.y<<endl;
+    outputMap << "Bellow gate center:" << blueGate.poseInWorld.x <<"\t"<< blueGate.poseInWorld.y<<endl;
     outputMap.close();
 }

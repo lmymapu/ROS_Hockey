@@ -76,10 +76,16 @@ void motorControl::rotateBeyondOdomVector(double angularVel, cartesianCoordinate
     while(ros::ok()){
         getTrafo_Odom2Robot();
         orientXY = getRobotOrientVector(trafo_Odom2Base);
+#ifdef DEBUG_ON
+        ROS_INFO_STREAM("Robot orientation: "<< orientXY.x << "  "<< orientXY.y);
+#endif
         curOrient.setValue(orientXY.x, orientXY.y, 0);
 
         if(angularVel > 0){
             curAngle = curOrient.cross(tarOrient).getZ();
+#ifdef DEBUG_ON
+        ROS_INFO_STREAM("Robot angle to target: "<< curAngle << " last angle: "<<lastAngle);
+#endif
             if(curAngle < 0 && lastAngle >=0){
                 vel_msg.angular.z = 0;
                 velocityPub.publish(vel_msg);

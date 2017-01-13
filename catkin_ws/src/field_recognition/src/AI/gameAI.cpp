@@ -61,6 +61,13 @@ bool gameAI::existsMessage(const controlMessage msg){
 
 void gameAI::testDataReceipt(){
     ros::Rate sample_rate(10);
+    bool toStartLaser(true);
+    while(1){
+    int count = 0;
+    if(toStartLaser)
+        start_laserDrv.call(srv_start);
+    else
+        stop_laserDrv.call(srv_stop);
     while(ros::ok()){
         try{
             listener.waitForTransform("/odom", "/base_footprint", ros::Time(0), ros::Duration(10.0));
@@ -86,9 +93,14 @@ void gameAI::testDataReceipt(){
         if(!cam3DProcess.isEmpty()){
             cam3DProcess.detectObject(green);
             cam3DProcess.printObjects();
+
             //cam3DProcess.setImgDataDirty();
         }
+        count++;
+        if(count>100) break;
         sample_rate.sleep();
+    }
+    toStartLaser=!toStartLaser;
     }
 
 }

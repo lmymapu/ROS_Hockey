@@ -1,17 +1,18 @@
 #ifndef GLOBALCONFIG_H
 #define GLOBALCONFIG_H
+//#define DEBUG_ON
 //#define SIMULATION_MODE
 #define TEST_MODE
 //#define SINGLE_FIFO_TH_DATAREQ
-//#define MULTI_TH_DATAREQ
+#define MULTI_TH_DATAREQ
 //#define MULTI_FIFO_DATAREQ
-#define MULTI_FIFO_TH_DATAREQ
+//#define MULTI_FIFO_TH_DATAREQ
 //params to threading management
 const int NUM_OF_DATAREQ_THREAD = 3;
 const int NUM_OF_THREAD_MULTIFIFO = 3;
 
 //params to objects in map
-const double OBJ_POST_RADIUS = 0.015;
+const double OBJ_POST_RADIUS = 0.03;
 const double OBJ_PUCK_UP_RADIUS = 0.045;
 const double OBJ_PUCK_LOW_RADIUS = 0.128;
 

@@ -119,7 +119,8 @@ void fieldRecogAI::stateAction(){
     switch(stat){
     case start_pos0:
         //turn left by 180 degree
-        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, cartesianCoordinate(-1,0));
+        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, cartesianCoordinate(0, 1));
+        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, cartesianCoordinate(-1, 0));
         isRecogJobFinished = true;
         break;
     case move_01:
@@ -129,6 +130,7 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos1:
         //recognise the nearest object with laser
+        ros::Duration(1).sleep();
         if(laserProcess.findLeftMostObjectRadialPose_blk(-M_PI/2, M_PI/6, objRadialPose)){
             objOdomCartPose = calculatePostOdomPose(objRadialPose);
             postObj.setValue(0, green, post, objOdomCartPose);
@@ -149,6 +151,7 @@ void fieldRecogAI::stateAction(){
         break;
     case halt_pos2:
         //recognise the first object on the right
+        ros::Duration(1).sleep();
         if(laserProcess.findRightMostObjectRadialPose_blk(-M_PI/6, M_PI/2, objRadialPose)){
             objOdomCartPose = calculatePostOdomPose(objRadialPose);
             postObj.setValue(1, green, post, objOdomCartPose);
@@ -164,11 +167,12 @@ void fieldRecogAI::stateAction(){
         motorProcess.rotateBeyondOdomVector(-RECAI_NORMAL_ANGVEL, yAxisInOdom - xAxisInOdom);
         motorProcess.moveBeyondOdomPose(RECAI_NORMAL_LINVEL, cartesianCoordinate(0,0));
         motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, -xAxisInOdom);
-        motorProcess.moveToLeftMostObj_Simple(RECAI_NORMAL_LINVEL, -RECAI_NORMAL_ANGVEL, RECAI_MINDIST_OBJ, CamLaserGuide(0.5,1,-M_PI/9,M_PI/4,green));
+        motorProcess.moveToLeftMostObj_Simple(RECAI_NORMAL_LINVEL, -1.5 * RECAI_NORMAL_ANGVEL, RECAI_MINDIST_OBJ, CamLaserGuide(0.5,1,-M_PI/9,M_PI/4,green));
         isMovingFinished = true;
         break;
     case halt_pos3:
         //recognise the first object on the right
+        ros::Duration(1).sleep();
         if(laserProcess.findLeftMostObjectRadialPose_blk(-M_PI/2, M_PI/6, objRadialPose)){
             objOdomCartPose = calculatePostOdomPose(objRadialPose);
             postObj.setValue(4, green, post, objOdomCartPose);
@@ -283,20 +287,20 @@ void fieldRecogAI::calculateAllGatesPose(){
         ROS_ERROR("%s", ex.what());
     }
     if(hockeyField.teamColor=yellow){
-        hockeyField.blueGate.poseInOdom = cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
+        hockeyField.blueGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
         hockeyField.blueGate.width = b/3; hockeyField.blueGate.height = a/4;
         hockeyField.blueGate.convert_Odom2World(trafo_World2Odom);
 
-        hockeyField.yellowGate.poseInOdom = cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
+        hockeyField.yellowGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
         hockeyField.yellowGate.width = b/3; hockeyField.yellowGate.height = a/4;
         hockeyField.yellowGate.convert_Odom2World(trafo_World2Odom);
     }
     if(hockeyField.teamColor=blue){
-        hockeyField.yellowGate.poseInOdom = cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
+        hockeyField.yellowGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
         hockeyField.yellowGate.width = b/3; hockeyField.yellowGate.height = a/4;
         hockeyField.yellowGate.convert_Odom2World(trafo_World2Odom);
 
-        hockeyField.blueGate.poseInOdom = cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
+        hockeyField.blueGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
         hockeyField.blueGate.width = b/3; hockeyField.blueGate.height = a/4;
         hockeyField.blueGate.convert_Odom2World(trafo_World2Odom);
     }
