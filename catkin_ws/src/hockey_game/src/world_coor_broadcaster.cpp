@@ -1,13 +1,13 @@
 
 #include <ros/ros.h>
-#include "field_recognition/convert_frames.h"
+#include "hockey_game/convert_frames.h"
 #include <tf/transform_broadcaster.h>
 
 double offset_x(0), offset_y(0);
 double rotate_theta(0);
 bool isTrafoAvailable(false);
 
-bool convert(field_recognition::convert_frames::Request &req, field_recognition::convert_frames::Response &resp){
+bool convert(hockey_game::convert_frames::Request &req, hockey_game::convert_frames::Response &resp){
     offset_x = req.offset_x;
     offset_y = req.offset_y;
     rotate_theta = acos(req.xAxis_x / sqrt(pow(req.xAxis_x,2) + pow(req.xAxis_y,2)));

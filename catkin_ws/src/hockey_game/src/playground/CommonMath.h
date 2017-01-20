@@ -1,7 +1,7 @@
 #ifndef COMMONMATH_H
 #define COMMONMATH_H
 #include "ros/ros.h"
-
+#include <tf/transform_listener.h>
 struct radialCoordinate{
     double r;
     double theta;
@@ -28,5 +28,4 @@ cartesianCoordinate calculateUnitVec(cartesianCoordinate point1, cartesianCoordi
 double normVec(cartesianCoordinate point1, cartesianCoordinate point0);
 cartesianCoordinate getXfromY(cartesianCoordinate yAxis);
 cartesianCoordinate getYfromX(cartesianCoordinate xAxis);
-
 #endif // COMMONMATH_H

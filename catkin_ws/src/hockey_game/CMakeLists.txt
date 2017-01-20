@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(field_recognition)
+project(hockey_game)
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -164,25 +164,30 @@ aux_source_directory(src/AI SRC_AI)
 aux_source_directory(src/playground SRC_MAP)
 aux_source_directory(src/connection SRC_CONNECT)
 #add_executable(fieldRecog_rechAngle src/AI/fieldRecogAI_rectAngle.cpp)
-#add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP}
-#    src/sensor/Camera.h src/sensor/laserobject.h src/sensor/CamObject.h src/sensor/trackbar.h src/sensor/3DCamera.h src/sensor/3DCamObject.h
-#    src/playground/ObjectInMap.h src/playground/CommonMath.h src/playground/Map.h
-#    src/AI/fieldRecogAI.h src/AI/gameAI.h
-#    src/actuator/motorControl.h src/actuator/gameMotorControl.h src/globalConfig.h)
-add_executable(fieldRecog_rechAngle src/fieldRecog.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP})
+add_executable(game_control src/gameControl.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP}
+    src/sensor/laserScanner.h src/sensor/laserObject.h src/sensor/trackbar.h src/sensor/3DCamera.h src/sensor/3DCamObject.h
+    src/playground/ObjectInMap.h src/playground/CommonMath.h src/playground/Map.h
+    src/AI/fieldRecogAI.h src/AI/gameAI.h
+    src/actuator/motorControl.h src/actuator/gameMotorControl.h src/globalConfig.h)
 add_executable(interactor src/interactor.cpp ${SRC_CONNECT}
     src/connection/worldFrameBroadcast.h)
+
+# camera module test
+add_executable(cameraTest src/3DCamTest.cpp ${SRC_SENSOR})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(bot_AI_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(fieldRecog_rechAngle
+target_link_libraries(game_control
    ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES}
  )
 target_link_libraries(interactor
    ${catkin_LIBRARIES}
+ )
+target_link_libraries(cameraTest
+   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES}
  )
 
 #############

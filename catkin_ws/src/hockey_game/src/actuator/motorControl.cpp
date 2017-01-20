@@ -1,7 +1,7 @@
 #include "motorControl.h"
 
 
-motorControl::motorControl():laserProcessPtr(NULL),cameraProcessPtr(NULL),sample_rate(10)
+motorControl::motorControl():laserProcessPtr(NULL),cam3DProcessPtr(NULL),sample_rate(10),rotateAngleSum(0)
 {
     setControlPrecision(MOTOR_ANGLE_CTRL_PREC,MOTOR_ANGLE_LOCK_PREC,MOTOR_POSE_CTRL_PREC);
 #ifdef SIMULATION_MODE
@@ -9,19 +9,12 @@ motorControl::motorControl():laserProcessPtr(NULL),cameraProcessPtr(NULL),sample
 #else
     velocityPub = motor_node.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10, this);
 #endif
+    //poseSub = motor_node.subscribe("/odom", 1, &motorControl::poseCallback, this);
 }
 
-//motorControl::motorControl(laserObject &lobj, turtlebotCamera &Cobj):sample_rate(10),laserProcess(lobj),cameraProcess(Cobj){
-//#ifdef SIMULATION_MODE
-//    velocityPub = motor_node.advertise<geometry_msgs::Twist>("cmd_vel", 10, this);
-//#else
-//    velocityPub = motor_node.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10, this);
-//#endif
-//}
-
-void motorControl::initMotor(laserObject *ln, turtlebotCamera *lc){
+void motorControl::initMotor(laserScanner *ln, turtlebotCamera3D *lc){
     laserProcessPtr = ln;
-    cameraProcessPtr = lc;
+    cam3DProcessPtr = lc;
 }
 
 void motorControl::getTrafo_Odom2Robot(){
@@ -77,14 +70,14 @@ void motorControl::rotateBeyondOdomVector(double angularVel, cartesianCoordinate
         getTrafo_Odom2Robot();
         orientXY = getRobotOrientVector(trafo_Odom2Base);
 #ifdef DEBUG_ON
-        ROS_INFO_STREAM("Robot orientation: "<< orientXY.x << "  "<< orientXY.y);
+        //ROS_INFO_STREAM("Robot orientation: "<< orientXY.x << "  "<< orientXY.y);
 #endif
         curOrient.setValue(orientXY.x, orientXY.y, 0);
 
         if(angularVel > 0){
             curAngle = curOrient.cross(tarOrient).getZ();
 #ifdef DEBUG_ON
-        ROS_INFO_STREAM("Robot angle to target: "<< curAngle << " last angle: "<<lastAngle);
+        //ROS_INFO_STREAM("Robot angle to target: "<< curAngle << " last angle: "<<lastAngle);
 #endif
             if(curAngle < 0 && lastAngle >=0){
                 vel_msg.angular.z = 0;
@@ -111,19 +104,28 @@ void motorControl::rotateBeyondOdomVector(double angularVel, cartesianCoordinate
     }
 }
 
-void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, double angleMax){
+bool motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, double angleMax){
     radialCoordinate objRadialPose;
     geometry_msgs::Twist vel_msg;
+    double angleSum = 0;
+
+    getTrafo_Odom2Robot();
+    cartesianCoordinate orient = getRobotOrientVector(trafo_Odom2Base);
+    tf::Vector3 lastOrient,currOrient;
+    lastOrient.setValue(orient.x, orient.y,0);
     while(ros::ok()){
+        getTrafo_Odom2Robot();
+        orient = getRobotOrientVector(trafo_Odom2Base);
+        currOrient.setValue(orient.x, orient.y, 0);
+        angleSum -= currOrient.cross(lastOrient).getZ();
+        if(angleSum < -2*M_PI || angleSum > 2*M_PI){
+            return false;                                               //No object found
+        }
+        lastOrient = currOrient;
 #ifdef SINGLE_FIFO_TH_DATAREQ
         ros::spinOnce();
 #endif
-#ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
-        laserProcessPtr->Laser_queue.callOne();
-#endif
         if(laserProcessPtr->isLaserDataAvailable){
-            laserProcessPtr->isLaserDataAvailable = false;
             if(!laserProcessPtr->findClosestObjectRadialPose(angleMin, angleMax, objRadialPose)){
                 vel_msg.angular.z = angularVel;
                 velocityPub.publish(vel_msg);
@@ -131,7 +133,8 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, do
                 if(objRadialPose.theta < 0.5*motorAngleLockPrec && objRadialPose.theta > -0.5*motorAngleLockPrec){
                     vel_msg.angular.z = 0;
                     velocityPub.publish(vel_msg);
-                    return;
+                    rotateAngleSum += angleSum;
+                    return true;
                 }else{
                     vel_msg.angular.z = abs(angularVel) * sin(objRadialPose.theta);
                     velocityPub.publish(vel_msg);
@@ -142,57 +145,84 @@ void motorControl::rotateUntilObjInMiddle(double angularVel, double angleMin, do
     }
 }
 
-void motorControl::rotateUntilObjInWindow(double angularVel, Color objcolor, CamLaserGuide CLparam){
+bool motorControl::rotateUntilObjInWindow(double angularVel, Color objcolor, CamLaserGuide CLparam){
     geometry_msgs::Twist vel_msg;
     double offset;
+    double angleSum = 0;
+
+    getTrafo_Odom2Robot();
+    cartesianCoordinate orient = getRobotOrientVector(trafo_Odom2Base);
+    tf::Vector3 lastOrient,currOrient;
+    lastOrient.setValue(orient.x, orient.y,0);
     while(ros::ok()){
+        getTrafo_Odom2Robot();
+        orient = getRobotOrientVector(trafo_Odom2Base);
+        currOrient.setValue(orient.x, orient.y, 0);
+        angleSum -= currOrient.cross(lastOrient).getZ();
+        if(angleSum < -2*M_PI || angleSum > 2*M_PI){
+            return false;
+        }
+        lastOrient = currOrient;
 #ifdef SINGLE_FIFO_TH_DATAREQ
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
-            cameraProcessPtr->isCamDataAvailable = false;
-            cameraProcessPtr->detectObject(objcolor);
+        if(cam3DProcessPtr->is2DImgReady()){
+            cam3DProcessPtr->detectObject2D(objcolor);
 
-            if(!cameraProcessPtr->leftMostObj(objcolor, CLparam.camWindowBeg, CLparam.camWindowEnd, offset)){
+            if(!cam3DProcessPtr->leftMostObj(objcolor, CLparam.camWindowBeg, CLparam.camWindowEnd, offset)){
                 vel_msg.angular.z = angularVel;
                 velocityPub.publish(vel_msg);
             }else{
                 vel_msg.angular.z = 0;
                 velocityPub.publish(vel_msg);
-                return;
+                rotateAngleSum += angleSum;
+                return true;
             }
         }
         sample_rate.sleep();
     }
 }
 
-void motorControl::rotateUntilNoObjInWindow(double angularVel, Color objcolor, CamLaserGuide CLparam){
+bool motorControl::rotateUntilNoObjInWindow(double angularVel, Color objcolor, CamLaserGuide CLparam){
     geometry_msgs::Twist vel_msg;
     double offset;
+    double angleSum = 0;
 
+    getTrafo_Odom2Robot();
+    cartesianCoordinate orient = getRobotOrientVector(trafo_Odom2Base);
+    tf::Vector3 lastOrient,currOrient;
+    lastOrient.setValue(orient.x, orient.y,0);
     while(ros::ok()){
+        getTrafo_Odom2Robot();
+        orient = getRobotOrientVector(trafo_Odom2Base);
+        currOrient.setValue(orient.x, orient.y, 0);
+        angleSum -= currOrient.cross(lastOrient).getZ();
+        if(angleSum < -2*M_PI || angleSum > 2*M_PI){
+            return false;               //object is everywhere in field, no empty room
+        }
+        lastOrient = currOrient;
 #ifdef SINGLE_FIFO_TH_DATAREQ
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
-            cameraProcessPtr->isCamDataAvailable = false;
-            cameraProcessPtr->detectObject(objcolor);
+        if(cam3DProcessPtr->is2DImgReady()){
+            cam3DProcessPtr->detectObject2D(objcolor);
 
-            if(cameraProcessPtr->leftMostObj(objcolor, CLparam.camWindowBeg, CLparam.camWindowEnd, offset)){
+            if(cam3DProcessPtr->leftMostObj(objcolor, CLparam.camWindowBeg, CLparam.camWindowEnd, offset)){
                 vel_msg.angular.z = angularVel;
                 velocityPub.publish(vel_msg);
             }else{
                 vel_msg.angular.z = 0;
                 velocityPub.publish(vel_msg);
-                return;
+                rotateAngleSum += angleSum;
+                return true;
             }
         }
         sample_rate.sleep();
@@ -272,20 +302,18 @@ void motorControl::moveToLeftMostObj_Simple(double linearVel, double angularVel,
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjLeft = cameraProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjLeft = cam3DProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -293,9 +321,9 @@ void motorControl::moveToLeftMostObj_Simple(double linearVel, double angularVel,
         }
 
         if(existsObjMid){
-            vel_msg.angular.z = 0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
         }else if(existsObjLeft){
-            vel_msg.angular.z = 1*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 1*offsetObjLeft/(cam3DProcessPtr->imgWidth) * angularVel;
         }else{
             vel_msg.angular.z = 1*angularVel;
         }
@@ -339,21 +367,20 @@ void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjLeft = cameraProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
-            existsObjLeftSection = cameraProcessPtr->leftMostObj(CLparam.objColor, 0, CLparam.camWindowBeg, offsetObjLeft);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjLeft = cam3DProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
+            existsObjLeftSection = cam3DProcessPtr->leftMostObj(CLparam.objColor, 0, CLparam.camWindowBeg, offsetObjLeft);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
+
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -361,21 +388,21 @@ void motorControl::moveToLeftMostObj(double linearVel, double angularVel, double
         }
         if(foundObjRightSection){
             if(existsObjLeftSection){
-                vel_msg.angular.z = 6*offsetObjLeftSection/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = 6*offsetObjLeftSection/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjLeft){
-                vel_msg.angular.z = 1*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = 1*offsetObjLeft/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjMid){
-                vel_msg.angular.z = 0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = 0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
             }else{
                 vel_msg.angular.z = 1* angularVel;
             }
         }else{
             if(existsObjMid){
                 foundObjRightSection = true;
-                vel_msg.angular.z = 0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = 0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjLeft){
                 foundObjRightSection = true;
-                vel_msg.angular.z = 3*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = 3*offsetObjLeft/(cam3DProcessPtr->imgWidth) * angularVel;
             }else{
                 vel_msg.angular.z = 1*angularVel;
             }
@@ -425,20 +452,18 @@ void motorControl::moveAndSearchLeftMostObj(double linearVel, double angularVel,
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjLeft = cameraProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjLeft = cam3DProcessPtr->leftMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjLeft);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -446,9 +471,9 @@ void motorControl::moveAndSearchLeftMostObj(double linearVel, double angularVel,
         }
 
         if(existsObjLeft){
-            vel_msg.angular.z = 4*offsetObjLeft/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 4*offsetObjLeft/(cam3DProcessPtr->imgWidth) * angularVel;
         }else if(existsObjMid){
-            vel_msg.angular.z = 4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = 4*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
         }else{
             vel_msg.angular.z = -angularVel;
         }
@@ -493,20 +518,19 @@ void motorControl::moveToRightMostObj_Simple(double linearVel, double angularVel
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjRight = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjRight = cam3DProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
+
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -514,9 +538,9 @@ void motorControl::moveToRightMostObj_Simple(double linearVel, double angularVel
         }
 
         if(existsObjMid){
-            vel_msg.angular.z = -0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
         }else if(existsObjRight){
-            vel_msg.angular.z = -2*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -2*offsetObjRight/(cam3DProcessPtr->imgWidth) * angularVel;
         }else{
             vel_msg.angular.z = 1* angularVel;
         }
@@ -562,21 +586,20 @@ void motorControl::moveToRightMostObj(double linearVel, double angularVel, doubl
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjRight = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
-            existsObjRightSection = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowEnd, 1, offsetObjRightSection);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjRight = cam3DProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
+            existsObjRightSection = cam3DProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowEnd, 1, offsetObjRightSection);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
+
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -585,21 +608,21 @@ void motorControl::moveToRightMostObj(double linearVel, double angularVel, doubl
 
         if(foundObjLeftSection){
             if(existsObjRightSection){
-                vel_msg.angular.z = -6*offsetObjRightSection/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = -6*offsetObjRightSection/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjRight){
-                vel_msg.angular.z = -1*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = -1*offsetObjRight/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjMid){
-                vel_msg.angular.z = -0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = -0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
             }else{
                 vel_msg.angular.z = 1* angularVel;
             }
         }else{
             if(existsObjMid){
                 foundObjLeftSection = true;
-                vel_msg.angular.z = -0.5*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = -0.5*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
             }else if(existsObjRight){
                 foundObjLeftSection = true;
-                vel_msg.angular.z = -2*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+                vel_msg.angular.z = -2*offsetObjRight/(cam3DProcessPtr->imgWidth) * angularVel;
             }else{
                 vel_msg.angular.z = 1* angularVel;
             }
@@ -650,20 +673,19 @@ void motorControl::moveAndSearchRightMostObj(double linearVel, double angularVel
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
-        if(cameraProcessPtr->isCamDataAvailable){
+        if(cam3DProcessPtr->is2DImgReady()){
             firstCamDataReady = true;
-            cameraProcessPtr->detectObject(CLparam.objColor);
-            existsObjMid = cameraProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
-            existsObjRight = cameraProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
-            cameraProcessPtr->isCamDataAvailable = false;
+            cam3DProcessPtr->detectObject2D(CLparam.objColor);
+            existsObjMid = cam3DProcessPtr->objectInMiddle(CLparam.objColor, offsetObjMid);
+            existsObjRight = cam3DProcessPtr->rightMostObj(CLparam.objColor, CLparam.camWindowBeg, CLparam.camWindowEnd, offsetObjRight);
         }
         if(laserProcessPtr->isLaserDataAvailable){
             firstLaserDataReady = true;
             existsLaserObj = laserProcessPtr->findClosestObjectRadialPose(CLparam.laserWindowBeg, CLparam.laserWindowEnd, ObjPose);
-            laserProcessPtr->isLaserDataAvailable = false;
+
         }
         if(!firstCamDataReady || !firstLaserDataReady){
             sample_rate.sleep();
@@ -671,9 +693,9 @@ void motorControl::moveAndSearchRightMostObj(double linearVel, double angularVel
         }
 
         if(existsObjRight){
-            vel_msg.angular.z = -4*offsetObjRight/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -4*offsetObjRight/(cam3DProcessPtr->imgWidth) * angularVel;
         }else if(existsObjMid){
-            vel_msg.angular.z = -4*offsetObjMid/(cameraProcessPtr->picWidth) * angularVel;
+            vel_msg.angular.z = -4*offsetObjMid/(cam3DProcessPtr->imgWidth) * angularVel;
         }else{
             vel_msg.angular.z = -angularVel;
         }
@@ -708,11 +730,11 @@ void motorControl::moveUntilMinDist(double vel, double dist, double detectAngleR
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
         if(laserProcessPtr->isLaserDataAvailable){
-            laserProcessPtr->isLaserDataAvailable = false;
+
             if(!laserProcessPtr->findClosestObjectRadialPose(-detectAngleRange/2, detectAngleRange/2, objRadialPose)){
                 vel_msg.linear.x = vel;
                 velocityPub.publish(vel_msg);
@@ -795,21 +817,34 @@ void motorControl::testDataReceipt(){
         ros::spinOnce();
 #endif
 #ifdef MULTI_FIFO_DATAREQ
-        cameraProcessPtr->Cam2D_queue.callOne();
+        cam3DProcessPtr->Cam2D_queue.callOne();
         laserProcessPtr->Laser_queue.callOne();
 #endif
         if(laserProcessPtr->isLaserDataAvailable){
             //laserProcessPtr->recogniseObjects();
             //laserProcessPtr->transformOdomCartCoor(trafo_Odom2Base);
             laserProcessPtr->showObjectsPose();
-            laserProcessPtr->isLaserDataAvailable = false;
+
         }
 
-        if(cameraProcessPtr->isCamDataAvailable){
-            cameraProcessPtr->detectObject(green);
-            ROS_INFO_STREAM("Number of detected objects: "<< cameraProcessPtr->cObjects.size());
-            cameraProcessPtr->isCamDataAvailable = false;
+        if(cam3DProcessPtr->is2DImgReady()){
+            cam3DProcessPtr->detectObject2D(green);
+            cam3DProcessPtr->printObjects();
         }
         sample_rate.sleep();
     }
+}
+
+void motorControl::poseCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    // Transform Coordinates
+    std::unique_lock<std::mutex> lock(mutexPose);
+    double quatx= msg->pose.pose.orientation.x;
+    double quaty= msg->pose.pose.orientation.y;
+    double quatz= msg->pose.pose.orientation.z;
+    double quatw= msg->pose.pose.orientation.w;
+    tf::Quaternion q(quatx, quaty, quatz, quatw);
+    tf::Matrix3x3 m(q);
+    double roll, pitch;
+    m.getRPY(roll, pitch, theta);
 }
