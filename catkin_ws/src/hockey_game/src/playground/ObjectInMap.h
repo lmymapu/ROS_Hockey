@@ -6,7 +6,7 @@
 using namespace std;
 enum Color
 {
-    blue, yellow, green, red, black, otherColor
+    bl, yell, green, red, black, otherColor
 };
 enum ObjectType
 {
@@ -37,7 +37,7 @@ public:
 class PuckInMap : public ObjectInMap
 {
 public:
-    PuckInMap():upperRadius(0.1),lowerRadius(0.2){objColor = blue; objType = puck;}
+    PuckInMap():upperRadius(0.1),lowerRadius(0.2){objColor = bl; objType = puck;}
     PuckInMap(double ur, double lr, Color c):upperRadius(ur),lowerRadius(lr){objColor = c; objType = puck;}
     double upperRadius;
     double lowerRadius;
@@ -46,7 +46,7 @@ public:
 class GateInMap : public ObjectInMap
 {
 public:
-    GateInMap():width(1),height(0.3),cornersInWorld(4){objColor = blue; objType = gate;}
+    GateInMap():width(1),height(0.3),cornersInWorld(4){objColor = bl; objType = gate;}
     GateInMap(double field_a, double field_b, Color c):height(field_a/4),width(field_b/3),cornersInWorld(4){objColor = c; objType = gate;}
     double width;
     double height;

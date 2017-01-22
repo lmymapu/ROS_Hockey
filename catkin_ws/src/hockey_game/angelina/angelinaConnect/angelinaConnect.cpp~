@@ -1,0 +1,74 @@
+#include <QDebug>
+#include <QLabel>
+#include <QPushButton>
+#include <QVBoxLayout>
+
+#include "angelinaConnect.h"
+#include <iostream>
+#include "referee.h"
+
+Angelina::Angelina(QWidget *parent) :
+    QWidget(parent), myPosID(0), myOriID(0), referee(0)
+{
+}
+void Angelina::testconnect() {
+    if (referee)
+        delete referee;
+    referee = new Referee(5, this);
+    //connect(referee, SIGNAL(gameStart()), this, SLOT(slotGameStart()));
+    referee->connectToServer("127.0.0.1", 10000); // ip address of robot
+}
+
+void Angelina::ReportReady() {
+    referee->reportReady();
+    //std::cout << "Robot is Ready";
+}
+
+//void angelinaConnect::DetectionStart()
+//{
+   // referee->detectionStart(); //90s for detecting the field and team color
+   // std::cout << "Detection Time running";
+//}
+
+void Angelina::sendPosition() {
+    double x = 2;
+    double y = 2;
+    referee->tellEgoPos(x, y);
+}
+
+void Angelina::tellAbRatio() {
+    double x = 1;
+    double y = 0.5;
+    double ratio = x/y;
+    referee->tellAbRatio(ratio);
+}
+
+void Angelina::tellTeamColor()
+{
+    TeamColor tColour;
+
+    referee->tellTeamColor(tColour);
+}
+
+void Angelina::ReportGoal()
+{
+    referee->reportGoal(); // goal
+    //std::cout << "-> Goal";
+
+}
+
+void Angelina::ReportDone()
+{
+    referee->reportDone();
+    //std::cout << "All work is done";
+}
+
+
+void Angelina::SendAlive()
+{
+    referee->sendAlive();
+    //std::cout << "Robot 5 is alive";
+}
+
+
+

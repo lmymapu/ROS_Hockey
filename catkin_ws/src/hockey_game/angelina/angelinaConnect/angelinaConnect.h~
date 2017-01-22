@@ -1,0 +1,35 @@
+#ifndef TEST_H
+#define TEST_H
+
+//#include <QLineEdit>
+#include <QListWidget>
+//#include <QRadioButton>
+#include <QTimer>
+#include <QWidget>
+#include <QMap>
+
+#include "referee.h"
+
+class Referee;
+
+class Test: public QWidget
+{
+    Q_OBJECT
+
+    public:
+       int myPosID;
+       int myOriID;
+       Test(QWidget *parent=0);
+       Referee *referee;
+       void testconnect();
+       void ReportReady();
+       //void DetectionStart();
+       void sendPosition();
+       void tellAbRatio();
+       void tellTeamColor();
+       void ReportGoal();
+       void ReportDone();
+       void SendAlive();
+};
+
+#endif /* TEST_H */

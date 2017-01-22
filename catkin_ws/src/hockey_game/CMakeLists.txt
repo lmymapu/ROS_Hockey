@@ -31,6 +31,22 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
+
+# For communication with angelina
+# Use some custom cmakefiles
+set (CMAKE_MODULE_PATH
+	/usr
+)
+
+# Use Network
+set(  QT_USE_QTNETWORK TRUE )
+set(  QT_USE_QTXML TRUE )
+
+# Check for QT4
+FIND_PACKAGE( Qt4 REQUIRED )
+# Load QT variabls
+INCLUDE( ${QT_USE_FILE} )
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -138,13 +154,28 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${QT_INCLUDE_DIR}
   src/sensor/
   src/AI/
   src/actuator/
   src/playground/
   src/connection
   src/
+  angelina/hermes
+  angelina/angelinaConnect
 )
+
+# Angelina
+set(MOC_H_ANG
+  angelina/angelinaConnect/angelinaConnect.h
+)
+set(SRC_H_ANG
+  angelina/angelinaConnect/angelinaConnect.h
+)
+set(SRC_CPP_ANG
+  angelina/angelinaConnect/angelinaConnect.cpp
+)
+QT4_WRAP_CPP( MOC_CPP_ANG ${MOC_H_ANG} )
 
 ## Declare a C++ library
 # add_library(bot_AI
@@ -164,16 +195,19 @@ aux_source_directory(src/AI SRC_AI)
 aux_source_directory(src/playground SRC_MAP)
 aux_source_directory(src/connection SRC_CONNECT)
 #add_executable(fieldRecog_rechAngle src/AI/fieldRecogAI_rectAngle.cpp)
+
 add_executable(game_control src/gameControl.cpp ${SRC_SENSOR} ${SRC_ACT} ${SRC_AI} ${SRC_MAP}
-    src/sensor/laserScanner.h src/sensor/laserObject.h src/sensor/trackbar.h src/sensor/3DCamera.h src/sensor/3DCamObject.h
-    src/playground/ObjectInMap.h src/playground/CommonMath.h src/playground/Map.h
-    src/AI/fieldRecogAI.h src/AI/gameAI.h
-    src/actuator/motorControl.h src/actuator/gameMotorControl.h src/globalConfig.h)
+${SRC_CONNECT} ${SRC_CPP_ANG} ${SRC_H_ANG} ${MOC_CPP_ANG}
+)
 add_executable(interactor src/interactor.cpp ${SRC_CONNECT}
-    src/connection/worldFrameBroadcast.h)
+    ${SRC_CPP_ANG} ${SRC_H_ANG} ${MOC_CPP_ANG} 
+)
 
 # camera module test
 add_executable(cameraTest src/3DCamTest.cpp ${SRC_SENSOR})
+
+# Subdirectory angelina
+add_subdirectory (angelina/hermes)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -181,10 +215,12 @@ add_executable(cameraTest src/3DCamTest.cpp ${SRC_SENSOR})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(game_control
-   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES}
+   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${QT_LIBRARIES} referee
  )
 target_link_libraries(interactor
    ${catkin_LIBRARIES}
+   ${QT_LIBRARIES}
+   referee
  )
 target_link_libraries(cameraTest
    ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES}

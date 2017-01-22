@@ -75,10 +75,10 @@ void turtlebotCamera3D::detectObject2D(Color enColor, std::vector<CamObject3D> &
     // find object using given ranges
     switch(enColor)
     {
-    case blue:
+    case bl:
         cv::inRange(hsvImg, Scalar(113,121,34), Scalar(130,255,130), threshold);
         break;
-    case yellow:
+    case yell:
         cv::inRange(hsvImg, Scalar(20, 32, 113), Scalar(33,255,255), threshold);
         break;
     case green:
@@ -188,10 +188,10 @@ void turtlebotCamera3D::detectObject3D(Color enColor, std::vector<CamObject3D> &
     // find object using given ranges
     switch(enColor)
     {
-    case blue:
+    case bl:
         cv::inRange(hsvImg, Scalar(113,121,34), Scalar(130,255,130), threshold);
         break;
-    case yellow:
+    case yell:
         cv::inRange(hsvImg, Scalar(20, 32, 113), Scalar(33,255,255), threshold);
         break;
     case green:

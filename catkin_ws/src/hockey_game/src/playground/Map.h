@@ -18,8 +18,8 @@ public:
     tf::StampedTransform trafo_Odom2World;
     vector<PostInMap> postObjs;
     vector<PuckInMap> puckObjs;
-    GateInMap yellowGate;
-    GateInMap blueGate;
+    GateInMap yellGate;
+    GateInMap blGate;
     unsigned int pucksInGoal;
     void printMap();
     bool isPuckInGate(const PuckInMap pk);

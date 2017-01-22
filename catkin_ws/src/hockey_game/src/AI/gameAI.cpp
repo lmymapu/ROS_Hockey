@@ -9,11 +9,11 @@ void gameAI::stateTransition(){
     PuckInMap puckObj;
     GateInMap gateObj;
     switch(puckColor){
-    case blue:
-        gateObj = hockeyField.blueGate;
+    case bl:
+        gateObj = hockeyField.blGate;
         break;
-    case yellow:
-        gateObj = hockeyField.yellowGate;
+    case yell:
+        gateObj = hockeyField.yellGate;
         break;
     default:
         break;
@@ -141,7 +141,7 @@ void gameAI::stateTransition(){
                 break;
             }
         }
-        motorProcess.rotateAndPointToWorldVec(GAMEAI_NORMAL_ANGVEL, hockeyField.yellowGate.poseInWorld);
+        motorProcess.rotateAndPointToWorldVec(GAMEAI_NORMAL_ANGVEL, hockeyField.yellGate.poseInWorld);
         motorProcess.movePuckToGoal(GAMEAI_NORMAL_LINVEL, GAMEAI_NORMAL_ANGVEL, OBJ_PUCK_LOW_RADIUS, goalWorldPose, msg_buffer);
         stop_laserDrv.call(srv_stop);
         laserScanOn = false;
@@ -150,6 +150,7 @@ void gameAI::stateTransition(){
             break;
         }
         if(existsMessage(GOAL)){
+            hockeyField.pucksInGoal++;
             stat=DETACH_PUCK;
             break;
         }
@@ -171,7 +172,7 @@ void gameAI::stateTransition(){
         laserScanOn = true;
         motorProcess.rotateUntilNoObjAtBack(GAMEAI_NORMAL_ANGVEL);
         motorProcess.moveBeyondDist(-GAMEAI_NORMAL_LINVEL, 0.2);
-        motorProcess.rotateBeyondWorldVector(GAMEAI_NORMAL_ANGVEL, cartesianCoordinate(-1,0));
+        motorProcess.rotateBeyondWorldVector(GAMEAI_NORMAL_ANGVEL, cartesianCoordinate(-1,-1));
         stop_laserDrv.call(srv_stop);
         laserScanOn = false;
         stat=SEARCH_PUCK;

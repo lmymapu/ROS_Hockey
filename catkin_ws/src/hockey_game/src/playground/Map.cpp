@@ -2,7 +2,7 @@
 
 Map::Map():postObjs(MAP_NUMOF_POSTS),puckObjs(MAP_NUMOF_PUCKS)
 {
-a=0; b=0;teamColor=blue;
+a=0; b=0;teamColor=bl;
 delta_a=MAP_BORDER_Y; delta_b=MAP_BORDER_X;
 pucksInGoal =0;
 }
@@ -26,18 +26,18 @@ void Map::printMap(){
     outputMap << "post 9: [ " << postObjs[9].poseInWorld.x <<"\t"<< postObjs[9].poseInWorld.y <<" ]" <<endl;
     outputMap << "post 12: [ " << postObjs[12].poseInWorld.x <<"\t"<< postObjs[12].poseInWorld.y <<" ]" <<endl;
     outputMap << "post 13: [ " << postObjs[13].poseInWorld.x <<"\t"<< postObjs[13].poseInWorld.y <<" ]" <<endl;
-    outputMap << "Yellow gate center:" << yellowGate.poseInWorld.x <<"\t"<< yellowGate.poseInWorld.y<<endl;
-    outputMap << "Bellow gate center:" << blueGate.poseInWorld.x <<"\t"<< blueGate.poseInWorld.y<<endl;
+    outputMap << "Yellow gate center:" << yellGate.poseInWorld.x <<"\t"<< yellGate.poseInWorld.y<<endl;
+    outputMap << "Bellow gate center:" << blGate.poseInWorld.x <<"\t"<< blGate.poseInWorld.y<<endl;
     outputMap.close();
 }
 
 bool Map::isPuckInGate(const PuckInMap pk){
-    if(teamColor = yellow){
-        return (pk.poseInWorld.x < yellowGate.poseInWorld.x+b/6 && pk.poseInWorld.x > yellowGate.poseInWorld.x-b/6 &&
-                pk.poseInWorld.y < yellowGate.poseInWorld.y+a/8 && pk.poseInWorld.y > yellowGate.poseInWorld.y-a/8);
+    if(teamColor = yell){
+        return (pk.poseInWorld.x < yellGate.poseInWorld.x+b/6 && pk.poseInWorld.x > yellGate.poseInWorld.x-b/6 &&
+                pk.poseInWorld.y < yellGate.poseInWorld.y+a/8 && pk.poseInWorld.y > yellGate.poseInWorld.y-a/8);
     }
-    if(teamColor = blue){
-        return (pk.poseInWorld.x < blueGate.poseInWorld.x+b/6 && pk.poseInWorld.x > blueGate.poseInWorld.x-b/6 &&
-                pk.poseInWorld.y < blueGate.poseInWorld.y+a/8 && pk.poseInWorld.y > blueGate.poseInWorld.y-a/8);
+    if(teamColor = bl){
+        return (pk.poseInWorld.x < blGate.poseInWorld.x+b/6 && pk.poseInWorld.x > blGate.poseInWorld.x-b/6 &&
+                pk.poseInWorld.y < blGate.poseInWorld.y+a/8 && pk.poseInWorld.y > blGate.poseInWorld.y-a/8);
     }
 }

@@ -16,7 +16,7 @@ int main(int argc, char** argv)
         if(!camera.isEmpty())
         {
 			int start_s = clock();
-            camera.detectObject3D(yellow);
+            camera.detectObject3D(yell);
             float fRate = float(CLOCKS_PER_SEC)/float(clock()-start_s);
 #ifdef _DEBUG_MODE_
             camera.printObjects();

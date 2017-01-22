@@ -1,12 +1,15 @@
 #ifndef GLOBALCONFIG_H
 #define GLOBALCONFIG_H
+#include "angelinaConnect.h"
+#include <QtGui>
+
 //#define DEBUG_ON
 #define DEBUG_STATE_TRANS
 #define DEBUG_MOTOR
 //#define EASY_GAME_CONTROL
 #define COMPLEX_GAME_CONTROL
 //#define SIMULATION_MODE
-#define TEST_MODE
+//#define TEST_MODE
 //#define SINGLE_FIFO_TH_DATAREQ
 #define MULTI_TH_DATAREQ
 //#define MULTI_FIFO_DATAREQ
@@ -21,6 +24,7 @@ const double OBJ_PUCK_UP_RADIUS = 0.045;
 const double OBJ_PUCK_LOW_RADIUS = 0.064;
 const double OBJ_ROBOT_DIAMETER = 0.35;
 const double OBJ_ROBOT_SAFE_RADIUS = 0.20;
+const double OBJ_ROBOT_CATCH_RADIUS = 0.05;
 
 //params to map config
 const int MAP_NUMOF_POSTS = 14;

@@ -226,49 +226,49 @@ void fieldRecogAI::calculateAllGatesPose(){
     }catch(tf::TransformException ex){
         ROS_ERROR("%s", ex.what());
     }
-    if(hockeyField.teamColor==yellow){
-        hockeyField.blueGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
-        hockeyField.blueGate.width = b/3; hockeyField.blueGate.height = a/4;
-        hockeyField.blueGate.convert_Odom2World(trafo_World2Odom);
+    if(hockeyField.teamColor==yell){
+        hockeyField.blGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
+        hockeyField.blGate.width = b/3; hockeyField.blGate.height = a/4;
+        hockeyField.blGate.convert_Odom2World(trafo_World2Odom);
 
-        hockeyField.yellowGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
-        hockeyField.yellowGate.width = b/3; hockeyField.yellowGate.height = a/4;
-        hockeyField.yellowGate.convert_Odom2World(trafo_World2Odom);
+        hockeyField.yellGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
+        hockeyField.yellGate.width = b/3; hockeyField.yellGate.height = a/4;
+        hockeyField.yellGate.convert_Odom2World(trafo_World2Odom);
     }
-    if(hockeyField.teamColor==blue){
-        hockeyField.yellowGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
-        hockeyField.yellowGate.width = b/3; hockeyField.yellowGate.height = a/4;
-        hockeyField.yellowGate.convert_Odom2World(trafo_World2Odom);
+    if(hockeyField.teamColor==bl){
+        hockeyField.yellGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(3*a/8*yAxisInOdom.x, 3*a/8*yAxisInOdom.y);
+        hockeyField.yellGate.width = b/3; hockeyField.yellGate.height = a/4;
+        hockeyField.yellGate.convert_Odom2World(trafo_World2Odom);
 
-        hockeyField.blueGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
-        hockeyField.blueGate.width = b/3; hockeyField.blueGate.height = a/4;
-        hockeyField.blueGate.convert_Odom2World(trafo_World2Odom);
+        hockeyField.blGate.poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(b/2*xAxisInOdom.x, b/2*xAxisInOdom.y) + cartesianCoordinate(21*a/8*yAxisInOdom.x, 21*a/8*yAxisInOdom.y);
+        hockeyField.blGate.width = b/3; hockeyField.blGate.height = a/4;
+        hockeyField.blGate.convert_Odom2World(trafo_World2Odom);
     }
 }
 
 void fieldRecogAI::determineTeamPuckColor(){
-    CamObject3D yellowPuck, bluePuck;
-    bool bluePuckdetected(false), yellowPuckdetected(false);
-    bluePuckdetected = cameraProcessPtr->smallestZObj_blk(blue, 0, 1, bluePuck);
+    CamObject3D yellPuck, blPuck;
+    bool blPuckdetected(false), yellPuckdetected(false);
+    blPuckdetected = cameraProcessPtr->smallestZObj_blk(bl, 0, 1, blPuck);
 #ifdef DEBUG_STATE_TRANS
     cameraProcessPtr->printObjects();
 #endif
-    yellowPuckdetected = cameraProcessPtr->smallestZObj_blk(yellow, 0, 1, yellowPuck);
+    yellPuckdetected = cameraProcessPtr->smallestZObj_blk(yell, 0, 1, yellPuck);
 #ifdef DEBUG_STATE_TRANS
     cameraProcessPtr->printObjects();
 #endif
-    if(!bluePuckdetected && yellowPuckdetected){
-        hockeyField.teamColor = yellow;
-        ROS_INFO("detected yellow puck, yellowPuck Z value: %f", yellowPuck.m3DPositionMedian.z);
-    }else if(bluePuckdetected && !yellowPuckdetected){
-        hockeyField.teamColor = blue;
-        ROS_INFO("detected blue puck, bluePuck Z value: %f", bluePuck.m3DPositionMedian.z);
-    }else if(bluePuckdetected && yellowPuckdetected){
-        ROS_INFO("detected blue & yellow puck, yellowPuck Z value: %f, bluePuck Z value: %f", yellowPuck.m3DPositionMedian.z, bluePuck.m3DPositionMedian.z);
-        if(yellowPuck.m3DPositionMedian.z < bluePuck.m3DPositionMedian.z){
-            hockeyField.teamColor = yellow;
+    if(!blPuckdetected && yellPuckdetected){
+        hockeyField.teamColor = yell;
+        ROS_INFO("detected yell puck, yellPuck Z value: %f", yellPuck.m3DPositionMedian.z);
+    }else if(blPuckdetected && !yellPuckdetected){
+        hockeyField.teamColor = bl;
+        ROS_INFO("detected bl puck, blPuck Z value: %f", blPuck.m3DPositionMedian.z);
+    }else if(blPuckdetected && yellPuckdetected){
+        ROS_INFO("detected bl & yell puck, yellPuck Z value: %f, blPuck Z value: %f", yellPuck.m3DPositionMedian.z, blPuck.m3DPositionMedian.z);
+        if(yellPuck.m3DPositionMedian.z < blPuck.m3DPositionMedian.z){
+            hockeyField.teamColor = yell;
         }else{
-            hockeyField.teamColor = blue;
+            hockeyField.teamColor = bl;
         }
     }else{
         ROS_WARN("Warning, no puck detected");
@@ -307,7 +307,7 @@ void fieldRecogAI::testDataReceipt(){
         }
 
         if(!cameraProcessPtr->isEmpty()){
-            cameraProcessPtr->detectObject3D(blue);
+            cameraProcessPtr->detectObject3D(bl);
             cameraProcessPtr->printObjects();
 
             //cam3DProcess.setImgDataDirty();

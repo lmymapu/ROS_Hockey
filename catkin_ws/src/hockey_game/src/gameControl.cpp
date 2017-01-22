@@ -8,25 +8,34 @@ int main(int argc, char** argv){
 #ifdef TEST_MODE
     laserScanner laserProcess;
     turtlebotCamera3D cam3DProcess;
+//    QApplication app(argc, argv);
+//    Angelina angelina;
+//    angelina.testconnect();
+//    angelina.ReportReady();
     fieldRecogAI detectField(&laserProcess, &cam3DProcess);
-    Map playground(1.2, 3, yellow);
-    playground.blueGate.poseInWorld.setVal(1.5, 0.45);
-    playground.blueGate.height = 0.3; playground.blueGate.width = 1;
-    playground.yellowGate.poseInWorld.setVal(1.5, 3.15);
-    playground.yellowGate.height = 0.3; playground.yellowGate.width = 1;
+    Map playground(1.2, 3, yell);
+    playground.blGate.poseInWorld.setVal(1.5, 0.45);
+    playground.blGate.height = 0.3; playground.blGate.width = 1;
+    playground.yellGate.poseInWorld.setVal(1.5, 3.15);
+    playground.yellGate.height = 0.3; playground.yellGate.width = 1;
     playground.postObjs[0].poseInOdom.setVal(-0.45, 1.5);
     detectField.hockeyField = playground;
     detectField.activateWorldCoordinate();
-    gameAI gameRoutine(playground,&laserProcess, &cam3DProcess);
-    gameRoutine.startFighting();
+//    angelina.SendAlive();
+//    QApplication::processEvents();
+//    gameAI gameRoutine(playground,&laserProcess, &cam3DProcess);
+//    gameRoutine.startFighting();
 #else
     laserScanner laserProcess;
     turtlebotCamera3D cam3DProcess;
-    fieldRecogAI detectField(&laserProcess, &cam3DProcess);
+    //Angelina angelina;
     Map playground;
+
+    fieldRecogAI detectField(&laserProcess, &cam3DProcess);
     detectField.startFieldRecognition();
     playground = detectField.hockeyField;
     playground.printMap();
+
     ROS_INFO("Map printed");
     gameAI gameRoutine(playground,&laserProcess, &cam3DProcess);
     gameRoutine.startFighting();

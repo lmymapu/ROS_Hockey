@@ -313,3 +313,18 @@ bool laserScanner::findClosestObjectRadialPose_blk(double angleMin, double angle
     }
 }
 
+bool laserScanner::findClosestObjectInTrack(double yBeg, double yEnd, laserObject &closestDist){
+    unique_lock<mutex> lock(laserMutex);
+    closestDist.closestPoint.r=laserMaxDetectRange;
+    bool isFound=false;
+    for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
+        if((it->closestPoint).r < closestDist.closestPoint.r && (it->closestPoint).r*sin((it->closestPoint).theta) < yEnd
+                && (it->closestPoint).r*sin((it->closestPoint).theta) > yBeg){
+            closestDist = *it;
+            isFound=true;
+        }
+    }
+    isLaserDataAvailable=false;
+    return isFound;
+}
+

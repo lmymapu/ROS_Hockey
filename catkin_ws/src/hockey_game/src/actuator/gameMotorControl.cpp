@@ -129,7 +129,7 @@ bool gameMotorControl::rotateUntilNo3DObjInWindow(double angularVel, Color objco
 
 bool gameMotorControl::moveAndCatchObj_simple(double linVel, double angVel, CamLaserGuide CLparam, vector<controlMessage> &msg){
     msg.clear();
-    stateCatchPuck stat = OBJ_FAR;
+    stateCatchPuck stat = CATCH_OBJ_FAR;
     angVel = abs(angVel);
     geometry_msgs::Twist vel_msg;
     laserObject lobj;
@@ -164,71 +164,50 @@ bool gameMotorControl::moveAndCatchObj_simple(double linVel, double angVel, CamL
         }
 
         switch(stat){
-        case OBJ_FAR:
+        case CATCH_OBJ_FAR:
 #ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: curr_stat=OBJ_FAR");
+            ROS_INFO("CATCH PUCK: curr_stat=CATCH_OBJ_FAR");
 #endif
             if(!existsCobjLeft && !existsCobjRight && !existsCobjMid){
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_LOST");
-#endif
-                stat=OBJ_LOST;
+                stat=CATCH_OBJ_LOST;
                 break;
             }
             if(existsLobj && lobj.isObjInTrack()){
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_NEAR");
-#endif
-                stat=OBJ_NEAR;
+                stat=CATCH_OBJ_NEAR;
                 break;
             }else{
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_FAR");
-#endif
-                stat=OBJ_FAR;
+                stat=CATCH_OBJ_FAR;
                 break;
             }
-        case OBJ_NEAR:
+        case CATCH_OBJ_NEAR:
 #ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: curr_stat=OBJ_NEAR");
+            ROS_INFO("CATCH PUCK: curr_stat=CATCH_OBJ_NEAR");
 #endif
             if(!existsCobjLeft && !existsCobjRight && !existsCobjMid){
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_LOST");
-#endif
-                stat=OBJ_LOST;
+                stat=CATCH_OBJ_LOST;
                 break;
             }
             if(existsLobj && lobj.isObjInTrack()){
                 if(lobj.closestPoint.r < OBJ_ROBOT_DIAMETER/2 + OBJ_PUCK_LOW_RADIUS + 0.03){
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_CATCHED");
-#endif
-                    stat=OBJ_CATCHED;
+                    stat=CATCH_OBJ_CATCHED;
                     break;
                 }else{
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_NEAR");
-#endif
-                    stat=OBJ_NEAR;
+                    stat=CATCH_OBJ_NEAR;
                     break;
                 }
             }else{
-#ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: nxt_stat=OBJ_FAR");
-#endif
-                stat=OBJ_FAR;
+                stat=CATCH_OBJ_FAR;
                 break;
             }
-        case OBJ_LOST:
+        case CATCH_OBJ_LOST:
 #ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: curr_stat=OBJ_LOST");
+            ROS_INFO("CATCH PUCK: curr_stat=CATCH_OBJ_LOST");
 #endif
             msg.push_back(PUCK_OUT_OF_SIGHT);
             return false;
-        case OBJ_CATCHED:
+        case CATCH_OBJ_CATCHED:
 #ifdef DEBUG_MOTOR
-            ROS_INFO("CATCH PUCK: curr_stat=OBJ_CATCHED");
+            ROS_INFO("CATCH PUCK: curr_stat=CATCH_OBJ_CATCHED");
 #endif
             if(!existsCobjMid){
 #ifdef DEBUG_MOTOR
@@ -247,7 +226,7 @@ bool gameMotorControl::moveAndCatchObj_simple(double linVel, double angVel, CamL
         }
 
         switch(stat){
-        case OBJ_FAR:
+        case CATCH_OBJ_FAR:
             if(existsCobjMid){
                 vel_msg.angular.z = -2*(cObjMid.mMassCenter.x-320)/(cam3DProcessPtr->imgWidth) * angVel;
             }else if(existsCobjLeft){
@@ -258,7 +237,7 @@ bool gameMotorControl::moveAndCatchObj_simple(double linVel, double angVel, CamL
             vel_msg.linear.x = linVel;
             velocityPub.publish(vel_msg);
             break;
-        case OBJ_NEAR:
+        case CATCH_OBJ_NEAR:
             vel_msg.angular.z = 4*angVel*sin(lobj.closestPoint.theta);
             vel_msg.linear.x = linVel/2;
             velocityPub.publish(vel_msg);
@@ -411,6 +390,20 @@ void gameMotorControl::rotateBeyondWorldVector(double angularVel, cartesianCoord
     }
 }
 
+void gameMotorControl::rotateBeyondAngel(double angularVel, double rad){
+    double targetAngle;
+    cartesianCoordinate targetVec;
+    getRobotWorldPose();
+    if(angularVel > 0){
+        targetAngle = robotWorldAngle + rad;
+        targetVec.setVal(cos(targetAngle), sin(targetAngle));
+    }else{
+        targetAngle = robotWorldAngle - rad;
+        targetVec.setVal(cos(targetAngle), sin(targetAngle));
+    }
+    rotateBeyondWorldVector(angularVel, targetVec);
+}
+
 void gameMotorControl::rotateAndPointToWorldVec(double angVel, cartesianCoordinate target){
     getRobotWorldPose();
     cartesianCoordinate tarVec = target - robotWorldCoor;
@@ -450,6 +443,147 @@ bool gameMotorControl::rotateUntilNoObjAtBack(double angVel){
                 vel_msg.angular.z = abs(angVel);
                 velocityPub.publish(vel_msg);
             }
+        }
+    }
+}
+
+bool gameMotorControl::movePuckToGoal_simple(double linVel, double angVel, double objRadius, cartesianCoordinate targetPose, vector<controlMessage> &msg){
+    msg.clear();
+
+    stateShootPuck stat=SHOOT_ADVANCING;
+    geometry_msgs::Twist vel_msg;
+    tf::Vector3 targetPoseInRobot, targetPoseInWorld;
+    tf::Vector3 objPoseInWorld;
+    laserObject lObjLeft, lObjMid, lObjRight;
+    bool existsLObjLeft(false), existsLObjMid(false), existsLObjRight(false);
+    bool borderFront(false);
+    radialCoordinate nearestBorder;
+    PuckInMap puckObj;
+
+    targetPoseInWorld.setValue(targetPose.x, targetPose.y, 0);
+    while(ros::ok()){
+        if(laserProcessPtr->isLaserDataAvailable){
+            existsLObjMid = laserProcessPtr->findClosestObjectInTrack(-OBJ_ROBOT_CATCH_RADIUS, OBJ_ROBOT_CATCH_RADIUS, lObjMid);
+            existsLObjLeft = laserProcessPtr->findClosestObjectRadialPose(OBJ_ROBOT_CATCH_RADIUS, OBJ_ROBOT_SAFE_RADIUS, lObjLeft);
+            existsLObjRight = laserProcessPtr->findClosestObjectRadialPose(-OBJ_ROBOT_SAFE_RADIUS, -OBJ_ROBOT_CATCH_RADIUS, lObjRight);
+            puckObj.poseInWorld = lObjMid.getWorldPose(objRadius);
+            objPoseInWorld.setValue(puckObj.poseInWorld.x, puckObj.poseInWorld.y, 0);
+        }else{
+            continue;
+        }
+        getRobotWorldPose();
+        getClosestDistToBorder();
+        borderFront = closeToBorder_front(nearestBorder);
+        targetPoseInRobot = trafo_World2Base.inverse() * targetPoseInWorld;
+        switch(stat){
+        case SHOOT_ADVANCING:
+#ifdef DEBUG_MOTOR
+            ROS_INFO("SHOOT PUCK: advance to goal");
+#endif
+            if(!existsLObjMid){
+                stat=SHOOT_OBJ_LOST;
+            }else{
+                if(lObjMid.closestPoint.r > OBJ_ROBOT_DIAMETER/2 + OBJ_PUCK_LOW_RADIUS + 0.05){
+                    stat=SHOOT_OBJ_LOST;
+                }else{
+                    if((objPoseInWorld-targetPoseInWorld).length() < motorPoseCtrlPrec || hockeyField.isPuckInGate(puckObj)){
+                        stat=SHOOT_ARRIVED;
+                        break;
+                    }
+                    if(existsLObjLeft || existsLObjRight || borderFront){
+                        stat = SHOOT_STEER;
+                    }else{
+                        stat = SHOOT_ADVANCING;
+                    }
+                }
+            }
+            break;
+        case SHOOT_STEER:
+#ifdef DEBUG_MOTOR
+            ROS_INFO("SHOOT PUCK: steer away obstacle");
+#endif
+            if(!existsLObjMid){
+                stat=SHOOT_OBJ_LOST;
+            }else{
+                if(lObjMid.closestPoint.r > OBJ_ROBOT_DIAMETER/2 + OBJ_PUCK_LOW_RADIUS + 0.05){
+                    stat=SHOOT_OBJ_LOST;
+                }else{
+                    if((objPoseInWorld-targetPoseInWorld).length() < motorPoseCtrlPrec || hockeyField.isPuckInGate(puckObj)){
+                        stat=SHOOT_ARRIVED;
+                        break;
+                    }
+                    if(existsLObjLeft || existsLObjRight || borderFront){
+                        stat = SHOOT_STEER;
+                    }else{
+                        stat = SHOOT_ADVANCING;
+                    }
+                }
+            }
+            break;
+        case SHOOT_OBJ_LOST:
+#ifdef DEBUG_MOTOR
+            ROS_INFO("SHOOT PUCK: puck get lost");
+#endif
+            msg.push_back(PUCK_OUT_OF_SIGHT);
+            return false;
+            break;
+        case SHOOT_ARRIVED:
+#ifdef DEBUG_MOTOR
+            ROS_INFO("SHOOT PUCK: goal reached");
+#endif
+            msg.push_back(GOAL);
+            return true;
+            break;
+        }
+
+        switch(stat){
+        case SHOOT_ADVANCING:
+            vel_msg.angular.z = 8*angVel * atan2(targetPoseInRobot.getY(), targetPoseInRobot.getX());
+            vel_msg.linear.x = linVel * sqrt(pow(targetPoseInRobot.getX(), 2) + pow(targetPoseInRobot.getY(), 2));
+            velocityPub.publish(vel_msg);
+            break;
+        case SHOOT_STEER:
+            if(closeToBorder_left(nearestBorder) && closeToBorder_right(nearestBorder)){
+                if(distToBorder[0].theta + distToBorder[1].theta > 0){
+                    rotateBeyondAngel(-angVel, M_PI/4);
+                }else{
+                    rotateBeyondAngel(angVel, M_PI/4);
+                }
+                break;
+            }
+            if(closeToBorder_right(nearestBorder) && existsLObjLeft){
+                rotateBeyondAngel(angVel, lObjLeft.closestPoint.theta);
+                break;
+            }
+            if(closeToBorder_left(nearestBorder) && existsLObjRight){
+                rotateBeyondAngel(-angVel, -lObjLeft.closestPoint.theta);
+                break;
+            }
+            if(closeToBorder_front(nearestBorder)){
+                if(nearestBorder.theta < 0){
+                    vel_msg.angular.z = 8* angVel * (nearestBorder.theta + M_PI/2);
+                    vel_msg.linear.x = linVel * nearestBorder.r;
+                }else{
+                    vel_msg.angular.z = 8* angVel * (nearestBorder.theta - M_PI/2);
+                    vel_msg.linear.x = linVel * nearestBorder.r;
+                }
+                velocityPub.publish(vel_msg);
+                break;
+            }
+            if(existsLObjLeft){
+                vel_msg.angular.z = 8* angVel * (lObjLeft.closestPoint.theta - M_PI/2);
+                vel_msg.linear.x = linVel * lObjLeft.closestPoint.r;
+                velocityPub.publish(vel_msg);
+                break;
+            }
+            if(existsLObjRight){
+                vel_msg.angular.z = 8* angVel * (lObjRight.closestPoint.theta + M_PI/2);
+                vel_msg.linear.x = linVel * lObjRight.closestPoint.r;
+                velocityPub.publish(vel_msg);
+                break;
+            }
+            break;
+        default:break;
         }
     }
 }
@@ -576,6 +710,100 @@ bool gameMotorControl::isRobotOutofBorder(){
             robotWorldCoor.x<0 ||
             robotWorldCoor.y<0 ||
             robotWorldCoor.y>3*hockeyField.a;
+}
+
+bool gameMotorControl::getClosestDistToBorder(){
+    distToBorder.clear();
+    radialCoordinate rpose;
+    vector<tf::Vector3> borderWorldCoor(4);
+    vector<tf::Vector3> borderRobotCoor(4);
+    borderWorldCoor[0].setValue(robotWorldCoor.x, 0, 0);
+    borderRobotCoor[0] = trafo_World2Base.inverse() * borderWorldCoor[0];
+    rpose.r = sqrt(pow(borderRobotCoor[0].getX(),2) + pow(borderRobotCoor[0].getY(),2));
+    rpose.theta = -robotWorldAngle-M_PI/2;
+    if(rpose.r < hockeyField.delta_a){
+        distToBorder.push_back(rpose);
+    }
+
+    borderWorldCoor[1].setValue(hockeyField.b, robotWorldCoor.y, 0);
+    borderRobotCoor[1] = trafo_World2Base.inverse() * borderWorldCoor[1];
+    rpose.r = sqrt(pow(borderRobotCoor[1].getX(),2) + pow(borderRobotCoor[1].getY(),2));
+    rpose.theta = -robotWorldAngle;
+    if(rpose.r < hockeyField.delta_a){
+        distToBorder.push_back(rpose);
+    }
+
+    borderWorldCoor[2].setValue(robotWorldCoor.x, 3*hockeyField.a, 0);
+    borderRobotCoor[2] = trafo_World2Base.inverse() * borderWorldCoor[2];
+    rpose.r = sqrt(pow(borderRobotCoor[2].getX(),2) + pow(borderRobotCoor[2].getY(),2));
+    rpose.theta = M_PI/2-robotWorldAngle;
+    if(rpose.r < hockeyField.delta_a){
+        distToBorder.push_back(rpose);
+    }
+
+    borderWorldCoor[3].setValue(0, robotWorldCoor.y, 0);
+    borderRobotCoor[3] = trafo_World2Base.inverse() * borderWorldCoor[3];
+    rpose.r = sqrt(pow(borderRobotCoor[3].getX(),2) + pow(borderRobotCoor[3].getY(),2));
+    rpose.theta = M_PI-robotWorldAngle;
+    if(rpose.r < hockeyField.delta_a){
+        distToBorder.push_back(rpose);
+    }
+
+    if(distToBorder.size() != 0){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+bool gameMotorControl::closeToBorder_front(radialCoordinate &dist){
+    bool isFound(false);
+    dist.r = hockeyField.delta_a;
+    for(vector<radialCoordinate>::iterator it=distToBorder.begin(); it!=distToBorder.end(); ++it){
+        if(it->theta > -M_PI/2 && it->theta <= M_PI/2 && it->r < dist.r){
+            dist.r=it->r; dist.theta=it->theta;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool gameMotorControl::closeToBorder_back(radialCoordinate &dist){
+    bool isFound(false);
+    dist.r = hockeyField.delta_a;
+    for(vector<radialCoordinate>::iterator it=distToBorder.begin(); it!=distToBorder.end(); ++it){
+        if(((it->theta > M_PI/2 && it->theta <= M_PI) ||
+                (it->theta > -M_PI && it->theta <= -M_PI/2)) &&
+                it->r < dist.r){
+            dist.r=it->r; dist.theta=it->theta;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool gameMotorControl::closeToBorder_left(radialCoordinate &dist){
+    bool isFound(false);
+    dist.r = hockeyField.delta_a;
+    for(vector<radialCoordinate>::iterator it=distToBorder.begin(); it!=distToBorder.end(); ++it){
+        if(it->theta > 0 && it->theta <= M_PI && it->r < dist.r){
+            dist.r=it->r; dist.theta=it->theta;
+            isFound = true;
+        }
+    }
+    return isFound;
+}
+
+bool gameMotorControl::closeToBorder_right(radialCoordinate &dist){
+    bool isFound(false);
+    dist.r = hockeyField.delta_a;
+    for(vector<radialCoordinate>::iterator it=distToBorder.begin(); it!=distToBorder.end(); ++it){
+        if(it->theta > -M_PI && it->theta <= 0 && it->r < dist.r){
+            dist.r=it->r; dist.theta=it->theta;
+            isFound = true;
+        }
+    }
+    return isFound;
 }
 
 bool gameMotorControl::hasReachedGoalDegree()
