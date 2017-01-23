@@ -21,6 +21,7 @@ enum stateShootPuck{
     SHOOT_STEER,
     SHOOT_ADVANCING,
     SHOOT_OBJ_LOST,
+    SHOOT_OFF_FIELD,
     SHOOT_ARRIVED,
 };
 

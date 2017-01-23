@@ -78,7 +78,7 @@ void laserScanner::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scanPtr)
                     lobj.closestPoint.theta = obj_angle_min;
 
                 }
-                if(distDiff>LASER_DETECT_THRES){
+                if(distDiff>laserMaxDetectRange*0.7){
                     isObj=false;
                     obj_index_end=i;
                     lobj.getDiameter();
@@ -141,7 +141,7 @@ bool laserScanner::findLeftMostObjectRadialPose(double angleMin, double angleMax
     leftPose.theta = -M_PI;
     bool isFound = false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta > leftPose.theta){
+        if((it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta > leftPose.theta){
             leftPose.r = (it->closestPoint).r;
             leftPose.theta = (it->closestPoint).theta;
             isFound=true;
@@ -156,7 +156,7 @@ bool laserScanner::findLeftMostObjectRadialPose(double angleMin, double angleMax
     leftPose.closestPoint.theta = -M_PI;
     bool isFound = false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta > leftPose.closestPoint.theta){
+        if((it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta > leftPose.closestPoint.theta){
             leftPose = *it;
             isFound=true;
         }
@@ -198,7 +198,7 @@ bool laserScanner::findRightMostObjectRadialPose(double angleMin, double angleMa
     rightPose.theta = M_PI;
     bool isFound = false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta < rightPose.theta){
+        if((it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta < rightPose.theta){
             rightPose.r = (it->closestPoint).r;
             rightPose.theta = (it->closestPoint).theta;
             isFound=true;
@@ -213,7 +213,7 @@ bool laserScanner::findRightMostObjectRadialPose(double angleMin, double angleMa
     rightPose.closestPoint.theta = M_PI;
     bool isFound = false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta < rightPose.closestPoint.theta){
+        if((it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin && (it->closestPoint).theta < rightPose.closestPoint.theta){
             rightPose = *it;
             isFound=true;
         }
@@ -259,7 +259,7 @@ bool laserScanner::findClosestObjectRadialPose(double angleMin, double angleMax,
     closestDist.r=laserMaxDetectRange;
     bool isFound=false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).r < closestDist.r && (it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin){
+        if((it->closestPoint).r < closestDist.r && (it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin){
             closestDist.r=(it->closestPoint).r;
             closestDist.theta=(it->closestPoint).theta;
             isFound=true;
@@ -274,7 +274,7 @@ bool laserScanner::findClosestObjectRadialPose(double angleMin, double angleMax,
     closestDist.closestPoint.r=laserMaxDetectRange;
     bool isFound=false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).r < closestDist.closestPoint.r && (it->closestPoint).theta < angleMax && (it->closestPoint).theta > angleMin){
+        if((it->closestPoint).r < closestDist.closestPoint.r && (it->closestPoint).theta <= angleMax && (it->closestPoint).theta > angleMin){
             closestDist = *it;
             isFound=true;
         }
@@ -318,7 +318,7 @@ bool laserScanner::findClosestObjectInTrack(double yBeg, double yEnd, laserObjec
     closestDist.closestPoint.r=laserMaxDetectRange;
     bool isFound=false;
     for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
-        if((it->closestPoint).r < closestDist.closestPoint.r && (it->closestPoint).r*sin((it->closestPoint).theta) < yEnd
+        if((it->closestPoint).r < closestDist.closestPoint.r && (it->closestPoint).r*sin((it->closestPoint).theta) <= yEnd
                 && (it->closestPoint).r*sin((it->closestPoint).theta) > yBeg){
             closestDist = *it;
             isFound=true;
@@ -328,3 +328,34 @@ bool laserScanner::findClosestObjectInTrack(double yBeg, double yEnd, laserObjec
     return isFound;
 }
 
+bool laserScanner::findRightMostObjectInTrack(double yBeg, double yEnd, laserObject &dist){
+    unique_lock<mutex> lock(laserMutex);
+    dist.closestPoint.theta=M_PI/2;
+    bool isFound=false;
+    for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
+        if((it->closestPoint).theta < dist.closestPoint.theta && (it->closestPoint).theta > -M_PI/2
+                && (it->closestPoint).r*sin((it->closestPoint).theta) <= yEnd
+                && (it->closestPoint).r*sin((it->closestPoint).theta) > yBeg){
+            dist = *it;
+            isFound=true;
+        }
+    }
+    isLaserDataAvailable=false;
+    return isFound;
+}
+
+bool laserScanner::findLeftMostObjectInTrack(double yBeg, double yEnd, laserObject &dist){
+    unique_lock<mutex> lock(laserMutex);
+    dist.closestPoint.theta=-M_PI/2;
+    bool isFound=false;
+    for(vector<laserObject>::iterator it=lObjects.begin(); it!=lObjects.end(); ++it){
+        if((it->closestPoint).theta > dist.closestPoint.theta && (it->closestPoint).theta < M_PI/2
+                && (it->closestPoint).r*sin((it->closestPoint).theta) <= yEnd
+                && (it->closestPoint).r*sin((it->closestPoint).theta) > yBeg){
+            dist = *it;
+            isFound=true;
+        }
+    }
+    isLaserDataAvailable=false;
+    return isFound;
+}

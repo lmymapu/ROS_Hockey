@@ -35,6 +35,8 @@ public:
     bool findClosestObjectRadialPose_blk(double angleMin, double angleMax, laserObject &closestDist);
 
     bool findClosestObjectInTrack(double yBeg, double yEnd, laserObject &closestDist);
+    bool findRightMostObjectInTrack(double yBeg, double yEnd, laserObject &dist);
+    bool findLeftMostObjectInTrack(double yBeg, double yEnd, laserObject &dist);
 
     bool findLeftMostObjectRadialPose(double angleMin, double angleMax, radialCoordinate &leftPose);
     bool findLeftMostObjectRadialPose(double angleMin, double angleMax, laserObject &leftPose);

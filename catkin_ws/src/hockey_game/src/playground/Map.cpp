@@ -16,16 +16,20 @@ void Map::printMap(){
     outputMap.open("/home/gruppe5/catkin_ws/src/hockey_game/mapinfo.txt", fstream::out);
     outputMap << "Team color is " << teamColor <<endl;
     outputMap << "playground size: a = "<<a<<", b = "<<b<<endl;
-    outputMap << "post 0: [ " << postObjs[0].poseInWorld.x <<"\t"<< postObjs[0].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 1: [ " << postObjs[1].poseInWorld.x <<"\t"<< postObjs[1].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 4: [ " << postObjs[4].poseInWorld.x <<"\t"<< postObjs[4].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 5: [ " << postObjs[5].poseInWorld.x <<"\t"<< postObjs[5].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 6: [ " << postObjs[6].poseInWorld.x <<"\t"<< postObjs[6].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 7: [ " << postObjs[7].poseInWorld.x <<"\t"<< postObjs[7].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 8: [ " << postObjs[8].poseInWorld.x <<"\t"<< postObjs[8].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 9: [ " << postObjs[9].poseInWorld.x <<"\t"<< postObjs[9].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 12: [ " << postObjs[12].poseInWorld.x <<"\t"<< postObjs[12].poseInWorld.y <<" ]" <<endl;
-    outputMap << "post 13: [ " << postObjs[13].poseInWorld.x <<"\t"<< postObjs[13].poseInWorld.y <<" ]" <<endl;
+    for(int i=0; i!=MAP_NUMOF_POSTS; ++i){
+        if(postObjs[i].objID == i)
+            outputMap << "post " << postObjs[i].objID << " position: "<< postObjs[i].poseInWorld.x <<"\t"<< postObjs[i].poseInWorld.y <<" ]" <<endl;
+    }
+//    outputMap << "post 0: [ " << postObjs[0].poseInWorld.x <<"\t"<< postObjs[0].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 1: [ " << postObjs[1].poseInWorld.x <<"\t"<< postObjs[1].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 4: [ " << postObjs[4].poseInWorld.x <<"\t"<< postObjs[4].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 5: [ " << postObjs[5].poseInWorld.x <<"\t"<< postObjs[5].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 6: [ " << postObjs[6].poseInWorld.x <<"\t"<< postObjs[6].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 7: [ " << postObjs[7].poseInWorld.x <<"\t"<< postObjs[7].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 8: [ " << postObjs[8].poseInWorld.x <<"\t"<< postObjs[8].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 9: [ " << postObjs[9].poseInWorld.x <<"\t"<< postObjs[9].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 12: [ " << postObjs[12].poseInWorld.x <<"\t"<< postObjs[12].poseInWorld.y <<" ]" <<endl;
+//    outputMap << "post 13: [ " << postObjs[13].poseInWorld.x <<"\t"<< postObjs[13].poseInWorld.y <<" ]" <<endl;
     outputMap << "Yellow gate center:" << yellGate.poseInWorld.x <<"\t"<< yellGate.poseInWorld.y<<endl;
     outputMap << "Bellow gate center:" << blGate.poseInWorld.x <<"\t"<< blGate.poseInWorld.y<<endl;
     outputMap.close();

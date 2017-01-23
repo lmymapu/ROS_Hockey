@@ -14,9 +14,7 @@ using namespace std;
 enum GameState{
     SEARCH_PUCK,
     CATCH_PUCK,
-    CATCH_PUCK_DODGE,
     SHOOT_PUCK,
-    SHOOT_PUCK_DODGE,
     DETACH_PUCK,
     GAME_OVER,
 };

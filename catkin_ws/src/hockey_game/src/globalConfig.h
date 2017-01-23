@@ -23,7 +23,7 @@ const double OBJ_POST_RADIUS = 0.03;
 const double OBJ_PUCK_UP_RADIUS = 0.045;
 const double OBJ_PUCK_LOW_RADIUS = 0.064;
 const double OBJ_ROBOT_DIAMETER = 0.35;
-const double OBJ_ROBOT_SAFE_RADIUS = 0.20;
+const double OBJ_ROBOT_SAFE_RADIUS = 0.36;
 const double OBJ_ROBOT_CATCH_RADIUS = 0.05;
 
 //params to map config

@@ -8,10 +8,6 @@ int main(int argc, char** argv){
 #ifdef TEST_MODE
     laserScanner laserProcess;
     turtlebotCamera3D cam3DProcess;
-//    QApplication app(argc, argv);
-//    Angelina angelina;
-//    angelina.testconnect();
-//    angelina.ReportReady();
     fieldRecogAI detectField(&laserProcess, &cam3DProcess);
     Map playground(1.2, 3, yell);
     playground.blGate.poseInWorld.setVal(1.5, 0.45);
@@ -21,10 +17,9 @@ int main(int argc, char** argv){
     playground.postObjs[0].poseInOdom.setVal(-0.45, 1.5);
     detectField.hockeyField = playground;
     detectField.activateWorldCoordinate();
-//    angelina.SendAlive();
-//    QApplication::processEvents();
-//    gameAI gameRoutine(playground,&laserProcess, &cam3DProcess);
-//    gameRoutine.startFighting();
+
+    gameAI gameRoutine(playground,&laserProcess, &cam3DProcess);
+    gameRoutine.startFighting();
 #else
     laserScanner laserProcess;
     turtlebotCamera3D cam3DProcess;

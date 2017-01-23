@@ -64,14 +64,6 @@ void fieldRecogAI::nextStateControl(){
             isRecogJobFinished = false;
         }
         break;
-    case move_12:
-        if(isMovingFinished){
-            stat = halt_pos2;
-            isMovingFinished = false;
-        }
-        break;
-    case halt_pos2:
-        break;
     default:
         break;
     }
@@ -82,6 +74,7 @@ void fieldRecogAI::stateAction(){
     cartesianCoordinate objPostOdomPose;
     double moveLength;
     CamObject3D post3DCam;
+    std::vector<CamObject3D> post3DObjs(0);
     PostInMap postObj(OBJ_POST_RADIUS);
     double objOffsetInPic;
 
@@ -132,40 +125,85 @@ void fieldRecogAI::stateAction(){
         ROS_INFO("yAxis: [%f, %f]", yAxisInOdom.x, yAxisInOdom.y);
         ROS_INFO("b = %f", hockeyField.b);
 #endif
+        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, xAxisInOdom);
+        ros::Duration(1).sleep();
+        if(cameraProcessPtr->rightMostObj_blk(green,0, 0.6, post3DCam)){
+            objPostOdomPose = post3DCam.getOdomPose(OBJ_POST_RADIUS);
+            postObj.setValue(5, green, post, objPostOdomPose);
+            hockeyField.postObjs[5] = postObj;
+        }else{
+            ROS_INFO("post 5 recognition failed");
+        }
+        hockeyField.a = normVec(hockeyField.postObjs[5].poseInOdom, hockeyField.postObjs[1].poseInOdom);
+#ifdef DEBUG_STATE_TRANS
+        ROS_INFO("a = %f", hockeyField.a);
+#endif
+
+        //try to detect other posts as many as possible
+        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL,
+                                            cartesianCoordinate(hockeyField.b/2*xAxisInOdom.x, hockeyField.b/2*xAxisInOdom.y) +
+                                            cartesianCoordinate(hockeyField.a*yAxisInOdom.x, hockeyField.a*yAxisInOdom.y));
+        cameraProcessPtr->detectObject3D(green, post3DObjs);
+        for(std::vector<CamObject3D>::iterator it=post3DObjs.begin(); it!=post3DObjs.end(); ++it){
+            objPostOdomPose = it->getOdomPose(OBJ_POST_RADIUS);
+            if(normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a > 1.4 &&
+                    normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a < 1.6){
+                postObj.setValue(7, green, post, objPostOdomPose);
+                hockeyField.postObjs[7] = postObj;
+                hockeyField.a = normVec(hockeyField.postObjs[7].poseInOdom, hockeyField.postObjs[1].poseInOdom) / 1.5;
+#ifdef DEBUG_STATE_TRANS
+        ROS_INFO("by post 7, update a = %f", hockeyField.a);
+#endif
+            }
+            if(normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a > 1.8 &&
+                    normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a < 2.2){
+                postObj.setValue(9, green, post, objPostOdomPose);
+                hockeyField.postObjs[9] = postObj;
+                hockeyField.a = normVec(hockeyField.postObjs[9].poseInOdom, hockeyField.postObjs[1].poseInOdom) / 2.0;
+#ifdef DEBUG_STATE_TRANS
+        ROS_INFO("by post 9, update a = %f", hockeyField.a);
+#endif
+            }
+        }
+
+        //if succeeded in last step then try to detect the farthest post.
+        if(hockeyField.postObjs[7].objID == 7 || hockeyField.postObjs[9].objID == 9){
+            motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL,
+                                                cartesianCoordinate(hockeyField.b/2*xAxisInOdom.x, hockeyField.b/2*xAxisInOdom.y) +
+                                                cartesianCoordinate(2*hockeyField.a*yAxisInOdom.x, 2*hockeyField.a*yAxisInOdom.y));
+            cameraProcessPtr->detectObject3D(green, post3DObjs);
+            for(std::vector<CamObject3D>::iterator it=post3DObjs.begin(); it!=post3DObjs.end(); ++it){
+                objPostOdomPose = it->getOdomPose(OBJ_POST_RADIUS);
+                if(normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a > 2.9 &&
+                        normVec(objPostOdomPose, hockeyField.postObjs[1].poseInOdom)/hockeyField.a < 3.1){
+                    postObj.setValue(13, green, post, objPostOdomPose);
+                    hockeyField.postObjs[13] = postObj;
+                    hockeyField.a = normVec(hockeyField.postObjs[13].poseInOdom, hockeyField.postObjs[1].poseInOdom) / 3.0;
+                    yAxisInOdom = calculateUnitVec(hockeyField.postObjs[13].poseInOdom, hockeyField.postObjs[1].poseInOdom);
+                    xAxisInOdom = getXfromY(yAxisInOdom);
+#ifdef DEBUG_STATE_TRANS
+                    ROS_INFO("by post 13, update a = %f", hockeyField.a);
+                    ROS_INFO("by post 13, update xAxis: [%f, %f]", xAxisInOdom.x, xAxisInOdom.y);
+                    ROS_INFO("by post 13, update yAxis: [%f, %f]", yAxisInOdom.x, yAxisInOdom.y);
+#endif
+                }
+            }
+        }
         isRecogJobFinished = true;
         break;
     case move_01:
         //rotate to post No.4 and detect its pose
-        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, xAxisInOdom);
+        motorProcess.rotateBeyondOdomVector(-RECAI_NORMAL_ANGVEL, -yAxisInOdom);
         motorProcess.moveBeyondDist(RECAI_NORMAL_LINVEL,abs(hockeyField.postObjs[1].poseInOdom * xAxisInOdom)-1.2 * OBJ_ROBOT_DIAMETER);
         isMovingFinished = true;
         break;
     case halt_pos1:
+        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL,xAxisInOdom);
         motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL,yAxisInOdom);
-        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL,-xAxisInOdom);
-        ros::Duration(1).sleep();
-        if(cameraProcessPtr->leftMostObj_blk(green,0.45, 1, post3DCam)){
-            objPostOdomPose = post3DCam.getOdomPose(OBJ_POST_RADIUS);
-            postObj.setValue(4, green, post, objPostOdomPose);
-            hockeyField.postObjs[4] = postObj;
-        }else{
-            ROS_INFO("post 4 recognition failed");
-        }
-        hockeyField.a = normVec(hockeyField.postObjs[4].poseInOdom, hockeyField.postObjs[0].poseInOdom);
-        isRecogJobFinished = true;
-        break;
-    case move_12:
-        motorProcess.rotateBeyondOdomVector(RECAI_NORMAL_ANGVEL, -yAxisInOdom-xAxisInOdom);
-        tarPose = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(hockeyField.b/2 * xAxisInOdom.x, hockeyField.b/2 * xAxisInOdom.y)
-                + cartesianCoordinate(OBJ_ROBOT_DIAMETER * yAxisInOdom.x, OBJ_ROBOT_DIAMETER * yAxisInOdom.y);
-        motorProcess.moveBeyondOdomPose(RECAI_NORMAL_LINVEL, tarPose);
-        isMovingFinished = true;
-    case halt_pos2:
-        motorProcess.rotateBeyondOdomVector(-RECAI_NORMAL_ANGVEL, yAxisInOdom);
         ros::Duration(1).sleep();
         determineTeamPuckColor();
         activateWorldCoordinate();
-        calculateAllPostsPose();
+        calculateAllGatesPose();
         calculateAllGatesPose();
         isRecogJobFinished = true;
         break;
@@ -197,24 +235,9 @@ void fieldRecogAI::calculateAllPostsPose(){
     }catch(tf::TransformException ex){
         ROS_ERROR("%s", ex.what());
     }
-    hockeyField.postObjs[0].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[1].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[4].convert_Odom2World(trafo_World2Odom);
-
-    hockeyField.postObjs[5].poseInOdom = hockeyField.postObjs[1].poseInOdom + cartesianCoordinate(a*yAxisInOdom.x, a*yAxisInOdom.y);
-    hockeyField.postObjs[5].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[6].poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(3*a/2*yAxisInOdom.x, 3*a/2*yAxisInOdom.y);
-    hockeyField.postObjs[6].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[7].poseInOdom = hockeyField.postObjs[1].poseInOdom + cartesianCoordinate(3*a/2*yAxisInOdom.x, 3*a/2*yAxisInOdom.y);
-    hockeyField.postObjs[7].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[8].poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(2*a*yAxisInOdom.x, 2*a*yAxisInOdom.y);
-    hockeyField.postObjs[8].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[9].poseInOdom = hockeyField.postObjs[1].poseInOdom + cartesianCoordinate(2*a*yAxisInOdom.x, 2*a*yAxisInOdom.y);
-    hockeyField.postObjs[9].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[12].poseInOdom = hockeyField.postObjs[0].poseInOdom + cartesianCoordinate(3*a*yAxisInOdom.x, 3*a*yAxisInOdom.y);
-    hockeyField.postObjs[12].convert_Odom2World(trafo_World2Odom);
-    hockeyField.postObjs[13].poseInOdom = hockeyField.postObjs[1].poseInOdom + cartesianCoordinate(3*a*yAxisInOdom.x, 3*a*yAxisInOdom.y);
-    hockeyField.postObjs[13].convert_Odom2World(trafo_World2Odom);
+    for(std::vector<PostInMap>::iterator it=hockeyField.postObjs.begin(); it!=hockeyField.postObjs.end(); ++it){
+        it->convert_Odom2World(trafo_World2Odom);
+    }
 }
 
 void fieldRecogAI::calculateAllGatesPose(){
@@ -339,7 +362,7 @@ void fieldRecogAI::startFieldRecognition(){
     while(1){
         stateAction();
         nextStateControl();
-        if(isRecogJobFinished && stat == halt_pos2){
+        if(isRecogJobFinished && stat == halt_pos1){
 #ifdef MULTI_FIFO_TH_DATAREQ
             laser_request.stop();
             cam2D_request.stop();

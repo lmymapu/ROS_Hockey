@@ -30,6 +30,7 @@ void gameAI::stateTransition(){
         goalWorldPose = gateObj.poseInWorld + cartesianCoordinate(hockeyField.b/8, 0);
         break;
     default:
+        goalWorldPose = gateObj.poseInWorld;
         break;
     }
 
@@ -114,16 +115,8 @@ void gameAI::stateTransition(){
             stat=DETACH_PUCK;
             break;
         }
-        if(existsMessage(OBSTACLE_AHEAD)){
-            stat=CATCH_PUCK_DODGE;
-            break;
-        }
-#endif
-    case CATCH_PUCK_DODGE:
-#ifdef DEBUG_STATE_TRANS
-        ROS_INFO("DODGE by CATCHING PUCK");
-#endif
         break;
+#endif
     case SHOOT_PUCK:
 #ifdef DEBUG_STATE_TRANS
         ROS_INFO("SHOOT_PUCK");
@@ -141,8 +134,8 @@ void gameAI::stateTransition(){
                 break;
             }
         }
-        motorProcess.rotateAndPointToWorldVec(GAMEAI_NORMAL_ANGVEL, hockeyField.yellGate.poseInWorld);
-        motorProcess.movePuckToGoal(GAMEAI_NORMAL_LINVEL, GAMEAI_NORMAL_ANGVEL, OBJ_PUCK_LOW_RADIUS, goalWorldPose, msg_buffer);
+        motorProcess.rotateAndPointToWorldVec(GAMEAI_NORMAL_ANGVEL, goalWorldPose);
+        motorProcess.movePuckToGoal_simple(GAMEAI_NORMAL_LINVEL, GAMEAI_NORMAL_ANGVEL, OBJ_PUCK_LOW_RADIUS, goalWorldPose, msg_buffer);
         stop_laserDrv.call(srv_stop);
         laserScanOn = false;
         if(existsMessage(PUCK_LOST)){
@@ -151,18 +144,13 @@ void gameAI::stateTransition(){
         }
         if(existsMessage(GOAL)){
             hockeyField.pucksInGoal++;
-            stat=DETACH_PUCK;
+            if(hockeyField.pucksInGoal == 3){
+                stat = GAME_OVER;
+            }else{
+                stat=DETACH_PUCK;
+            }
             break;
         }
-        if(existsMessage(OBSTACLE_AHEAD)){
-            stat=SHOOT_PUCK_DODGE;
-            break;
-        }
-
-    case SHOOT_PUCK_DODGE:
-#ifdef DEBUG_STATE_TRANS
-        ROS_INFO("DODGE by SHOOTING PUCK");
-#endif
         break;
     case DETACH_PUCK:
 #ifdef DEBUG_STATE_TRANS
@@ -240,7 +228,14 @@ void gameAI::startFighting(){
     motorProcess.initGameMotor(laserProcessPtr, cam3DProcessPtr);
     laserProcessPtr->setDetectRange(LASER_MAX_DETECT_RANGE);
     ROS_INFO("Hockey Game Started!");
-
+#ifdef TEST_MODE
+    start_laserDrv.call(srv_start);
+    laserScanOn = true;
+    motorProcess.rotateAndPointToWorldVec(GAMEAI_NORMAL_ANGVEL, hockeyField.yellGate.poseInWorld);
+    motorProcess.movePuckToGoal_simple(GAMEAI_NORMAL_LINVEL, GAMEAI_NORMAL_ANGVEL, OBJ_PUCK_LOW_RADIUS, hockeyField.yellGate.poseInWorld, msg_buffer);
+    stop_laserDrv.call(srv_stop);
+    laserScanOn = false;
+#else
     while(1){
         stateTransition();
         if(stat==GAME_OVER){
@@ -251,5 +246,5 @@ void gameAI::startFighting(){
             break;
         }
     }
-
+#endif
 }
